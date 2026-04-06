@@ -8,9 +8,10 @@ name = "full-count"
 path = "src/main.rs"
 
 [features]
-# Enable entry and display of season batting averages.
-# Compile with: cargo build --features season-avg
-season-avg = []
+# Enable advanced stat tracking: season batting averages, hit breakdowns (2B/3B/HR),
+# stolen bases, caught stealing, LOB, wild pitches, batters faced, and more.
+# Compile with: cargo build --features advanced-stats
+advanced-stats = []
 
 [dependencies]
 ratatui    = "0.29"

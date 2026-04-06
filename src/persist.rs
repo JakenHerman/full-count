@@ -13,6 +13,9 @@ use crate::game::GameState;
 pub struct SaveFile {
     /// Unix timestamp (seconds) recorded at save time.
     pub saved_at_secs: u64,
+    /// Whether this save was created with the `advanced-stats` feature enabled.
+    #[serde(default)]
+    pub advanced_stats: bool,
     pub game: GameState,
 }
 
@@ -79,7 +82,11 @@ pub fn save_game_to_dir(game: &GameState, dir: &Path) -> Result<String, String> 
 }
 
 fn write_save_file(game: &GameState, saved_at_secs: u64, path: &Path) -> Result<(), String> {
-    let save = SaveFile { saved_at_secs, game: game.clone() };
+    let save = SaveFile {
+        saved_at_secs,
+        advanced_stats: cfg!(feature = "advanced-stats"),
+        game: game.clone(),
+    };
     let json = serde_json::to_string_pretty(&save)
         .map_err(|e| format!("Serialization error: {}", e))?;
     fs::write(path, json).map_err(|e| format!("Write error: {}", e))
@@ -97,6 +104,23 @@ pub fn load_game(path: &Path) -> Result<GameState, String> {
         .map_err(|e| format!("Read error: {}", e))?;
     let save: SaveFile = serde_json::from_str(&content)
         .map_err(|e| format!("Parse error: {}", e))?;
+
+    let current = cfg!(feature = "advanced-stats");
+    if save.advanced_stats && !current {
+        return Err(
+            "This save was created with advanced-stats enabled. \
+             Recompile with: cargo build --features advanced-stats"
+                .into(),
+        );
+    }
+    if !save.advanced_stats && current {
+        return Err(
+            "This save was created without advanced-stats. \
+             Recompile without the advanced-stats feature to load it."
+                .into(),
+        );
+    }
+
     Ok(save.game)
 }
 

@@ -109,6 +109,18 @@ pub struct BatterGameStats {
     pub walks: u8,
     pub strikeouts: u8,
     pub hit_by_pitch: u8,
+    #[serde(default)]
+    pub doubles: u8,
+    #[serde(default)]
+    pub triples: u8,
+    #[serde(default)]
+    pub home_runs: u8,
+    #[serde(default)]
+    pub stolen_bases: u8,
+    #[serde(default)]
+    pub caught_stealing: u8,
+    #[serde(default)]
+    pub reached_on_error: u8,
 }
 
 /// Cumulative pitching statistics for a single pitcher appearance in one game.
@@ -122,6 +134,10 @@ pub struct PitcherGameStats {
     pub strikeouts: u8,
     pub hit_batsmen: u8,
     pub pitch_count: u16,
+    #[serde(default)]
+    pub wild_pitches: u8,
+    #[serde(default)]
+    pub batters_faced: u8,
 }
 
 impl PitcherGameStats {
@@ -362,6 +378,8 @@ pub struct Team {
     pub pitchers: Vec<PitcherAppearance>,
     pub current_pitcher_idx: usize,
     pub batting_order_pos: usize,             // 0–8, wraps mod 9
+    #[serde(default)]
+    pub left_on_base: u8,
 }
 
 impl Team {
@@ -378,6 +396,7 @@ impl Team {
             }],
             current_pitcher_idx: 0,
             batting_order_pos: 0,
+            left_on_base: 0,
         }
     }
 
@@ -614,6 +633,10 @@ impl GameState {
                 AtBatResult::StrikeoutSwinging | AtBatResult::StrikeoutLooking => {
                     batter.stats.strikeouts += 1;
                 }
+                AtBatResult::Double => batter.stats.doubles += 1,
+                AtBatResult::Triple => batter.stats.triples += 1,
+                AtBatResult::HomeRun => batter.stats.home_runs += 1,
+                AtBatResult::Error(_) => batter.stats.reached_on_error += 1,
                 _ => {}
             }
         }
@@ -622,6 +645,7 @@ impl GameState {
         {
             let pitcher = self.fielding_team_mut().current_pitcher_mut();
             pitcher.stats.outs_recorded += outs_this_play as u16;
+            pitcher.stats.batters_faced += 1;
             if is_hit { pitcher.stats.hits_allowed += 1; }
             pitcher.stats.runs_allowed += rbi;
             if !is_error { pitcher.stats.earned_runs += rbi; }
@@ -724,6 +748,12 @@ impl GameState {
     }
 
     fn end_half_inning(&mut self) {
+        // Count runners left on base before clearing
+        let lob = self.bases.first.is_some() as u8
+            + self.bases.second.is_some() as u8
+            + self.bases.third.is_some() as u8;
+        self.batting_team_mut().left_on_base += lob;
+
         self.bases.clear();
         self.outs = 0;
         self.count.reset();

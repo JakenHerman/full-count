@@ -37,6 +37,16 @@ pub enum FielderResultType {
     SacrificeFly,
 }
 
+/// The reason a runner was manually advanced, used for crediting the right stat.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AdvanceReason {
+    StolenBase,
+    WildPitch,
+    PassedBall,
+    Balk,
+    Other,
+}
+
 /// Stage within the manual runner-advance flow.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AdvanceStage {
@@ -44,6 +54,8 @@ pub enum AdvanceStage {
     SelectFrom,
     /// `from` has been selected; now waiting for the destination base.
     SelectTo { from: u8 },
+    /// Runner has been moved; now asking why (only under `advanced-stats`).
+    SelectReason { from: u8, to: u8, scored: bool },
 }
 
 /// The current input mode on the Scoring screen, controlling how keystrokes are interpreted.
@@ -126,20 +138,20 @@ pub enum SetupSection {
 impl SetupSection {
     /// Returns the last focusable field in the away lineup (depends on `season-avg` feature).
     fn last_away_field() -> SetupSection {
-        if cfg!(feature = "season-avg") {
-            SetupSection::AwayLineup(8, LineupField::Avg)
-        } else {
-            SetupSection::AwayLineup(8, LineupField::Name)
-        }
+                if cfg!(feature = "advanced-stats") {
+                    SetupSection::AwayLineup(8, LineupField::Avg)
+                } else {
+                    SetupSection::AwayLineup(8, LineupField::Name)
+                }
     }
 
     /// Returns the last focusable field in the home lineup (depends on `season-avg` feature).
     fn last_home_field() -> SetupSection {
-        if cfg!(feature = "season-avg") {
-            SetupSection::HomeLineup(8, LineupField::Avg)
-        } else {
-            SetupSection::HomeLineup(8, LineupField::Name)
-        }
+                if cfg!(feature = "advanced-stats") {
+                    SetupSection::HomeLineup(8, LineupField::Avg)
+                } else {
+                    SetupSection::HomeLineup(8, LineupField::Name)
+                }
     }
 
     /// Returns the next setup field in tab order, wrapping from the last field back to the first.
@@ -148,7 +160,7 @@ impl SetupSection {
             SetupSection::AwayTeamName => SetupSection::HomeTeamName,
             SetupSection::HomeTeamName => SetupSection::AwayLineup(0, LineupField::Name),
             SetupSection::AwayLineup(row, LineupField::Name) => {
-                if cfg!(feature = "season-avg") {
+                if cfg!(feature = "advanced-stats") {
                     SetupSection::AwayLineup(*row, LineupField::Avg)
                 } else if *row < 8 {
                     SetupSection::AwayLineup(row + 1, LineupField::Name)
@@ -164,7 +176,7 @@ impl SetupSection {
                 }
             }
             SetupSection::HomeLineup(row, LineupField::Name) => {
-                if cfg!(feature = "season-avg") {
+                if cfg!(feature = "advanced-stats") {
                     SetupSection::HomeLineup(*row, LineupField::Avg)
                 } else if *row < 8 {
                     SetupSection::HomeLineup(row + 1, LineupField::Name)
@@ -191,7 +203,7 @@ impl SetupSection {
             SetupSection::HomeTeamName => SetupSection::AwayTeamName,
             SetupSection::AwayLineup(0, LineupField::Name) => SetupSection::HomeTeamName,
             SetupSection::AwayLineup(row, LineupField::Name) => {
-                if cfg!(feature = "season-avg") {
+                if cfg!(feature = "advanced-stats") {
                     SetupSection::AwayLineup(row - 1, LineupField::Avg)
                 } else {
                     SetupSection::AwayLineup(row - 1, LineupField::Name)
@@ -202,7 +214,7 @@ impl SetupSection {
             }
             SetupSection::HomeLineup(0, LineupField::Name) => Self::last_away_field(),
             SetupSection::HomeLineup(row, LineupField::Name) => {
-                if cfg!(feature = "season-avg") {
+                if cfg!(feature = "advanced-stats") {
                     SetupSection::HomeLineup(row - 1, LineupField::Avg)
                 } else {
                     SetupSection::HomeLineup(row - 1, LineupField::Name)

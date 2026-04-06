@@ -164,7 +164,7 @@ fn draw_setup(f: &mut Frame, app: &App) {
     // ── Column headers ─────────────────────────────────────────────────────
     let hdr_cols = two_col_split(rows[2]);
     let hdr_style = Style::default().fg(Color::DarkGray);
-    let hdr_line = if cfg!(feature = "season-avg") {
+    let hdr_line = if cfg!(feature = "advanced-stats") {
         Line::from(vec![
             Span::styled("  #  ", hdr_style),
             Span::styled(format!("{:<18}", "Name"), hdr_style),
@@ -297,7 +297,7 @@ fn render_lineup_row(
     } else {
         Style::default()
     };
-    let line = if cfg!(feature = "season-avg") {
+    let line = if cfg!(feature = "advanced-stats") {
         let avg_style = if avg_focused {
             Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
         } else {
@@ -468,10 +468,10 @@ fn draw_diamond(f: &mut Frame, game: &GameState, area: Rect) {
 }
 
 fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
-    // Each panel is 5 rows: 1 top border + 3 content + 1 bottom border.
+    let panel_height = if cfg!(feature = "advanced-stats") { 6 } else { 5 };
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(5), Constraint::Length(5)])
+        .constraints([Constraint::Length(panel_height), Constraint::Length(panel_height)])
         .split(area);
 
     // ── Batter panel ───────────────────────────────────────────────────────
@@ -485,7 +485,7 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
         .collect::<Vec<_>>()
         .join(" ");
 
-    let batter_name_line = if cfg!(feature = "season-avg") {
+    let batter_name_line = if cfg!(feature = "advanced-stats") {
         Line::from(vec![
             Span::styled("Batter:  ", Style::default().fg(Color::DarkGray)),
             Span::styled(batter.info.name.clone(), Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
@@ -498,7 +498,7 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
         ])
     };
 
-    let batter_text = Text::from(vec![
+    let mut batter_lines = vec![
         batter_name_line,
         Line::from(vec![
             Span::styled("Balls:   ", Style::default().fg(Color::DarkGray)),
@@ -517,7 +517,21 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
                 Style::default().fg(Color::DarkGray),
             ),
         ]),
-    ]);
+    ];
+    if cfg!(feature = "advanced-stats") {
+        batter_lines.push(Line::from(vec![
+            Span::raw("         "),
+            Span::styled(
+                format!(
+                    "2B:{} 3B:{} HR:{} SB:{}",
+                    batter.stats.doubles, batter.stats.triples,
+                    batter.stats.home_runs, batter.stats.stolen_bases
+                ),
+                Style::default().fg(Color::DarkGray),
+            ),
+        ]));
+    }
+    let batter_text = Text::from(batter_lines);
 
     f.render_widget(
         Paragraph::new(batter_text).block(
@@ -528,7 +542,7 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
 
     // ── Pitcher panel ──────────────────────────────────────────────────────
     let pitcher = game.fielding_team().current_pitcher();
-    let pitcher_text = Text::from(vec![
+    let mut pitcher_lines = vec![
         Line::from(vec![
             Span::styled("Pitcher: ", Style::default().fg(Color::DarkGray)),
             Span::styled(pitcher.info.name.clone(), Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
@@ -550,14 +564,29 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
                 Style::default().fg(Color::DarkGray),
             ),
         ]),
-        Line::from(vec![
+    ];
+    if cfg!(feature = "advanced-stats") {
+        pitcher_lines.push(Line::from(vec![
+            Span::raw("         "),
+            Span::styled(
+                format!(
+                    "BB:{}  K:{}  WP:{}  BF:{}",
+                    pitcher.stats.walks, pitcher.stats.strikeouts,
+                    pitcher.stats.wild_pitches, pitcher.stats.batters_faced
+                ),
+                Style::default().fg(Color::DarkGray),
+            ),
+        ]));
+    } else {
+        pitcher_lines.push(Line::from(vec![
             Span::raw("         "),
             Span::styled(
                 format!("BB:{}  K:{}", pitcher.stats.walks, pitcher.stats.strikeouts),
                 Style::default().fg(Color::DarkGray),
             ),
-        ]),
-    ]);
+        ]));
+    }
+    let pitcher_text = Text::from(pitcher_lines);
 
     f.render_widget(
         Paragraph::new(pitcher_text).block(
@@ -773,66 +802,131 @@ fn draw_summary_line_score(f: &mut Frame, game: &GameState, area: Rect) {
 fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Rect) {
     let team = if is_home { &game.home } else { &game.away };
 
-    let header = Row::new(["Batter", "AB", "R", "H", "RBI", "BB", "K"])
-        .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD));
+    if cfg!(feature = "advanced-stats") {
+        let header = Row::new(["Batter", "AB", "R", "H", "2B", "3B", "HR", "RBI", "BB", "K", "SB", "CS"])
+            .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD));
 
-    let mut rows: Vec<Row> = team.lineup.iter().map(|slot| {
-        Row::new([
-            slot.info.name.clone(),
-            slot.stats.at_bats.to_string(),
-            slot.stats.runs.to_string(),
-            slot.stats.hits.to_string(),
-            slot.stats.rbi.to_string(),
-            slot.stats.walks.to_string(),
-            slot.stats.strikeouts.to_string(),
-        ])
-    }).collect();
+        let mut rows: Vec<Row> = team.lineup.iter().map(|slot| {
+            Row::new([
+                slot.info.name.clone(),
+                slot.stats.at_bats.to_string(),
+                slot.stats.runs.to_string(),
+                slot.stats.hits.to_string(),
+                slot.stats.doubles.to_string(),
+                slot.stats.triples.to_string(),
+                slot.stats.home_runs.to_string(),
+                slot.stats.rbi.to_string(),
+                slot.stats.walks.to_string(),
+                slot.stats.strikeouts.to_string(),
+                slot.stats.stolen_bases.to_string(),
+                slot.stats.caught_stealing.to_string(),
+            ])
+        }).collect();
 
-    let totals = Row::new([
-        "TOTALS".to_string(),
-        team.lineup.iter().map(|s| s.stats.at_bats as u32).sum::<u32>().to_string(),
-        team.lineup.iter().map(|s| s.stats.runs as u32).sum::<u32>().to_string(),
-        team.lineup.iter().map(|s| s.stats.hits as u32).sum::<u32>().to_string(),
-        team.lineup.iter().map(|s| s.stats.rbi as u32).sum::<u32>().to_string(),
-        team.lineup.iter().map(|s| s.stats.walks as u32).sum::<u32>().to_string(),
-        team.lineup.iter().map(|s| s.stats.strikeouts as u32).sum::<u32>().to_string(),
-    ]).style(Style::default().add_modifier(Modifier::BOLD));
-    rows.push(totals);
+        let totals = Row::new([
+            "TOTALS".to_string(),
+            team.lineup.iter().map(|s| s.stats.at_bats as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.runs as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.hits as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.doubles as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.triples as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.home_runs as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.rbi as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.walks as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.strikeouts as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.stolen_bases as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.caught_stealing as u32).sum::<u32>().to_string(),
+        ]).style(Style::default().add_modifier(Modifier::BOLD));
+        rows.push(totals);
 
-    let widths = [
-        Constraint::Min(20),
-        Constraint::Length(4),
-        Constraint::Length(4),
-        Constraint::Length(4),
-        Constraint::Length(4),
-        Constraint::Length(4),
-        Constraint::Length(4),
-    ];
+        // LOB row (team-level)
+        let mut lob_cells: Vec<String> = vec![format!("LOB: {}", team.left_on_base)];
+        lob_cells.extend(std::iter::repeat(String::new()).take(11));
+        rows.push(Row::new(lob_cells).style(Style::default().fg(Color::DarkGray)));
 
-    f.render_widget(
-        Table::new(rows, widths)
-            .header(header)
-            .block(
-                Block::default()
-                    .title(format!(" {} Batting ", team.name))
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::DarkGray)),
-            ),
-        area,
-    );
+        let widths = [
+            Constraint::Min(18),
+            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(3), Constraint::Length(3), Constraint::Length(3),
+            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(3), Constraint::Length(3),
+        ];
+
+        f.render_widget(
+            Table::new(rows, widths)
+                .header(header)
+                .block(
+                    Block::default()
+                        .title(format!(" {} Batting ", team.name))
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::DarkGray)),
+                ),
+            area,
+        );
+    } else {
+        let header = Row::new(["Batter", "AB", "R", "H", "RBI", "BB", "K"])
+            .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD));
+
+        let mut rows: Vec<Row> = team.lineup.iter().map(|slot| {
+            Row::new([
+                slot.info.name.clone(),
+                slot.stats.at_bats.to_string(),
+                slot.stats.runs.to_string(),
+                slot.stats.hits.to_string(),
+                slot.stats.rbi.to_string(),
+                slot.stats.walks.to_string(),
+                slot.stats.strikeouts.to_string(),
+            ])
+        }).collect();
+
+        let totals = Row::new([
+            "TOTALS".to_string(),
+            team.lineup.iter().map(|s| s.stats.at_bats as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.runs as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.hits as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.rbi as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.walks as u32).sum::<u32>().to_string(),
+            team.lineup.iter().map(|s| s.stats.strikeouts as u32).sum::<u32>().to_string(),
+        ]).style(Style::default().add_modifier(Modifier::BOLD));
+        rows.push(totals);
+
+        let widths = [
+            Constraint::Min(20),
+            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
+        ];
+
+        f.render_widget(
+            Table::new(rows, widths)
+                .header(header)
+                .block(
+                    Block::default()
+                        .title(format!(" {} Batting ", team.name))
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::DarkGray)),
+                ),
+            area,
+        );
+    }
 }
 
 fn draw_summary_pitching(f: &mut Frame, game: &GameState, area: Rect) {
-    let header = Row::new(["Pitcher", "IP", "H", "R", "ER", "BB", "K", "PC"])
-        .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD));
+    let col_count = if cfg!(feature = "advanced-stats") { 10 } else { 8 };
+
+    let header = if cfg!(feature = "advanced-stats") {
+        Row::new(["Pitcher", "IP", "H", "R", "ER", "BB", "K", "WP", "BF", "PC"])
+            .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD))
+    } else {
+        Row::new(["Pitcher", "IP", "H", "R", "ER", "BB", "K", "PC"])
+            .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD))
+    };
 
     let mut rows: Vec<Row> = Vec::new();
 
     for (team, team_game) in [(&game.away, false), (&game.home, true)] {
-        // Team header row
         rows.push(
             Row::new(std::iter::once(team.name.clone())
-                .chain(std::iter::repeat(String::new()).take(7))
+                .chain(std::iter::repeat(String::new()).take(col_count - 1))
                 .collect::<Vec<_>>())
                 .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         );
@@ -841,33 +935,52 @@ fn draw_summary_pitching(f: &mut Frame, game: &GameState, area: Rect) {
                 Some(d) => format!("  {} ({})", p.info.name, d.label()),
                 None => format!("  {}", p.info.name),
             };
-            rows.push(Row::new([
-                name,
-                p.stats.ip_display(),
-                p.stats.hits_allowed.to_string(),
-                p.stats.runs_allowed.to_string(),
-                p.stats.earned_runs.to_string(),
-                p.stats.walks.to_string(),
-                p.stats.strikeouts.to_string(),
-                p.stats.pitch_count.to_string(),
-            ]));
+            if cfg!(feature = "advanced-stats") {
+                rows.push(Row::new([
+                    name,
+                    p.stats.ip_display(),
+                    p.stats.hits_allowed.to_string(),
+                    p.stats.runs_allowed.to_string(),
+                    p.stats.earned_runs.to_string(),
+                    p.stats.walks.to_string(),
+                    p.stats.strikeouts.to_string(),
+                    p.stats.wild_pitches.to_string(),
+                    p.stats.batters_faced.to_string(),
+                    p.stats.pitch_count.to_string(),
+                ]));
+            } else {
+                rows.push(Row::new([
+                    name,
+                    p.stats.ip_display(),
+                    p.stats.hits_allowed.to_string(),
+                    p.stats.runs_allowed.to_string(),
+                    p.stats.earned_runs.to_string(),
+                    p.stats.walks.to_string(),
+                    p.stats.strikeouts.to_string(),
+                    p.stats.pitch_count.to_string(),
+                ]));
+            }
         }
-        // Spacer between teams
         if !team_game {
-            rows.push(Row::new(vec![""; 8].into_iter().map(String::from).collect::<Vec<_>>()));
+            rows.push(Row::new(vec![""; col_count].into_iter().map(String::from).collect::<Vec<_>>()));
         }
     }
 
-    let widths = [
-        Constraint::Min(22),
-        Constraint::Length(5),
-        Constraint::Length(4),
-        Constraint::Length(4),
-        Constraint::Length(4),
-        Constraint::Length(4),
-        Constraint::Length(4),
-        Constraint::Length(5),
-    ];
+    let widths: Vec<Constraint> = if cfg!(feature = "advanced-stats") {
+        vec![
+            Constraint::Min(22),
+            Constraint::Length(5), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(3), Constraint::Length(3), Constraint::Length(5),
+        ]
+    } else {
+        vec![
+            Constraint::Min(22),
+            Constraint::Length(5), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(5),
+        ]
+    };
 
     f.render_widget(
         Table::new(rows, widths)

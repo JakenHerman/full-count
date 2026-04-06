@@ -27,7 +27,7 @@ A keyboard-driven terminal UI (TUI) for scoring baseball games in real time. Bui
 - **Save & resume** — games are serialized to JSON at `~/.full-count/saves/`; resume mid-inning
 - **Undo** — up to 100 levels of undo across pitch events and at-bat results
 - **Walk-off detection** — game ends automatically when the home team takes the lead in the 9th or later
-- **Optional season batting averages** — compile with `--features season-avg` to enter and display pre-game AVGs
+- **Advanced stats** — compile with `--features advanced-stats` to track 2B/3B/HR breakdowns, SB, CS, LOB, WP, BF, season AVG, and get categorized runner-advance prompts
 
 ---
 
@@ -47,13 +47,15 @@ cargo build --release
 
 The binary lands at `target/release/full-count`. Copy it anywhere on your `$PATH`.
 
-### With season batting average support
+### With advanced stats
 
 ```bash
-cargo build --release --features season-avg
+cargo build --release --features advanced-stats
 ```
 
-This adds an **Avg** field to the lineup setup form and displays each batter's season average in the scoring view.
+This enables extended stat tracking: season batting averages (Avg column on setup), hit breakdowns (2B/3B/HR), stolen bases, caught stealing, left on base, wild pitches, batters faced, and categorized runner-advance prompts.
+
+> **Save compatibility:** saves created with `advanced-stats` enabled can only be loaded by a binary compiled with the same flag, and vice versa. A clear error message is shown on mismatch.
 
 ---
 
@@ -108,7 +110,7 @@ Enter team names, the 9-slot batting lineup, and starting pitchers. Tab through 
 
 **Lineup slots** default to `Away #1` … `Away #9` if left blank, so you can jump straight to pitchers and start scoring without entering names.
 
-When the `season-avg` feature is enabled, each lineup row gains an **Avg** column that accepts values like `325` or `.325` (both parsed identically as `.325`).
+When the `advanced-stats` feature is enabled, each lineup row gains an **Avg** column that accepts values like `325` or `.325` (both parsed identically as `.325`).
 
 ---
 
@@ -200,10 +202,15 @@ After pressing `A`:
 2. Press the **source base** (`1`, `2`, or `3`)
 3. The status bar shows `To base: [1] [2] [3] [H]ome  [Esc] cancel`
 4. Press the **destination base** (`1`–`3`) or `H` to score the runner
+5. *(advanced-stats only)* A reason prompt appears: `[S]tolen base  [W]ild pitch  [P]assed ball  [B]alk  [O]ther`
+   - **S** credits the runner with a stolen base
+   - **W** credits the pitcher with a wild pitch
+   - **P**, **B**, **O** are logged but have no dedicated stat field
+   - Press **Esc** to skip (treated as "Other")
 
 This handles situations the automatic base-advancement logic doesn't cover: wild pitch advances, passed balls, balks, stolen bases, caught-stealing outs (remove with undo), and unusual plays.
 
-> **OBR Rule 9.12** governs how scorers credit baserunner advancement. Advances on wild pitches (WP), passed balls (PB), balks, and stolen bases (SB) are not differentiated in the current TUI — use the play log and your own notes for those distinctions. See [Wiki: Tracking Wild Pitches and Stolen Bases](#wiki-pages) for recommended conventions.
+> **OBR Rule 9.12** governs how scorers credit baserunner advancement. When the `advanced-stats` feature is enabled, the TUI prompts for a categorized reason so SB and WP are tracked automatically.
 
 #### Pitcher Changes (`Tab`)
 
@@ -254,7 +261,18 @@ Displays the final box score, batter stat lines, and the pitching staff with W/L
 | K | Strikeouts | Rule 9.15 |
 | HBP | Hit by pitch | Rule 9.01(c) |
 
-**Batting average** (when `season-avg` feature is enabled) is a pre-game entry and is not recalculated from game stats.
+**Batting average** (when `advanced-stats` feature is enabled) is a pre-game entry and is not recalculated from game stats.
+
+#### Additional Batter Stats (advanced-stats)
+
+| Column | Meaning | OBR Reference |
+|--------|---------|---------------|
+| 2B | Doubles | Rule 9.05 |
+| 3B | Triples | Rule 9.05 |
+| HR | Home runs | Rule 9.05 |
+| SB | Stolen bases | Rule 9.07 |
+| CS | Caught stealing | Rule 9.07 |
+| LOB | Team left on base | — |
 
 ### Pitcher Stats
 
@@ -268,6 +286,13 @@ Displays the final box score, batter stat lines, and the pitching staff with W/L
 | K | Strikeouts | Rule 9.15 |
 | HBP | Hit batsmen | — |
 | PC | Pitch count | — |
+
+#### Additional Pitcher Stats (advanced-stats)
+
+| Column | Meaning | OBR Reference |
+|--------|---------|---------------|
+| WP | Wild pitches | Rule 9.13 |
+| BF | Batters faced | — |
 
 **Innings pitched notation**: `6.2` means 6 full innings plus 2 additional outs (i.e. 20 outs recorded). The `.1`, `.2` suffixes represent outs, not fractions of an inning. A pitcher who gets one out in the 7th before being relieved is credited with `0.1` IP for that appearance.
 

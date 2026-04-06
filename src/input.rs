@@ -55,6 +55,23 @@ fn handle_setup_key(app: &mut App, key: KeyEvent) {
         app.open_load_menu();
         return;
     }
+    // Color-picker fields use Left/Right to cycle instead of text input.
+    if app.is_color_field() {
+        match key.code {
+            KeyCode::Left => app.prev_color(),
+            KeyCode::Right => app.next_color(),
+            KeyCode::Tab | KeyCode::Enter => {
+                app.setup_cursor = app.setup_cursor.next();
+                app.clear_status();
+            }
+            KeyCode::BackTab => {
+                app.setup_cursor = app.setup_cursor.prev();
+                app.clear_status();
+            }
+            _ => {}
+        }
+        return;
+    }
     match key.code {
         KeyCode::Tab => {
             app.setup_cursor = app.setup_cursor.next();

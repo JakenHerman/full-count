@@ -1,5 +1,124 @@
 use serde::{Deserialize, Serialize};
 
+// ── Team color ─────────────────────────────────────────────────────────────
+
+/// A curated palette of team colors covering all 30 MLB primary colors.
+///
+/// Uses true-color RGB where ANSI colors lack a good match.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TeamColor {
+    /// Cardinals, Reds, Red Sox, Angels, Phillies, Nationals, D-backs, Braves, Twins, Guardians
+    Red,
+    /// Astros, Orioles, Giants, Mets
+    Orange,
+    /// Pirates, Brewers
+    Gold,
+    Yellow,
+    /// Athletics
+    Green,
+    /// Mariners
+    Teal,
+    Cyan,
+    /// Cubs, Dodgers, Royals, Rangers, Blue Jays
+    Blue,
+    /// Yankees, Rays, Tigers, Twins, Brewers, Guardians
+    Navy,
+    /// Rockies
+    Purple,
+    Magenta,
+    /// Padres
+    Brown,
+    /// White Sox, Marlins, Pirates
+    Black,
+    Gray,
+    White,
+}
+
+impl TeamColor {
+    /// All available team colors, in picker order.
+    pub const ALL: &'static [TeamColor] = &[
+        TeamColor::Red,
+        TeamColor::Orange,
+        TeamColor::Gold,
+        TeamColor::Yellow,
+        TeamColor::Green,
+        TeamColor::Teal,
+        TeamColor::Cyan,
+        TeamColor::Blue,
+        TeamColor::Navy,
+        TeamColor::Purple,
+        TeamColor::Magenta,
+        TeamColor::Brown,
+        TeamColor::Black,
+        TeamColor::Gray,
+        TeamColor::White,
+    ];
+
+    /// Display name for the UI.
+    pub fn name(self) -> &'static str {
+        match self {
+            TeamColor::Red => "Red",
+            TeamColor::Orange => "Orange",
+            TeamColor::Gold => "Gold",
+            TeamColor::Yellow => "Yellow",
+            TeamColor::Green => "Green",
+            TeamColor::Teal => "Teal",
+            TeamColor::Cyan => "Cyan",
+            TeamColor::Blue => "Blue",
+            TeamColor::Navy => "Navy",
+            TeamColor::Purple => "Purple",
+            TeamColor::Magenta => "Magenta",
+            TeamColor::Brown => "Brown",
+            TeamColor::Black => "Black",
+            TeamColor::Gray => "Gray",
+            TeamColor::White => "White",
+        }
+    }
+
+    /// Next color in the palette, wrapping around.
+    pub fn next(self) -> TeamColor {
+        let idx = TeamColor::ALL.iter().position(|&c| c == self).unwrap_or(0);
+        TeamColor::ALL[(idx + 1) % TeamColor::ALL.len()]
+    }
+
+    /// Previous color in the palette, wrapping around.
+    pub fn prev(self) -> TeamColor {
+        let idx = TeamColor::ALL.iter().position(|&c| c == self).unwrap_or(0);
+        TeamColor::ALL[(idx + TeamColor::ALL.len() - 1) % TeamColor::ALL.len()]
+    }
+
+    /// Maps to the corresponding [`ratatui::style::Color`].
+    ///
+    /// Uses true-color RGB for Orange, Gold, Teal, Navy, Purple, and Brown
+    /// so they look correct on modern terminals.
+    pub fn to_color(self) -> ratatui::style::Color {
+        use ratatui::style::Color;
+        match self {
+            TeamColor::Red     => Color::Red,
+            TeamColor::Orange  => Color::Rgb(235, 110, 31),   // Astros orange
+            TeamColor::Gold    => Color::Rgb(253, 184, 39),   // Pirates gold
+            TeamColor::Yellow  => Color::Yellow,
+            TeamColor::Green   => Color::Green,
+            TeamColor::Teal    => Color::Rgb(0, 128, 128),    // Mariners teal
+            TeamColor::Cyan    => Color::Cyan,
+            TeamColor::Blue    => Color::Blue,
+            TeamColor::Navy    => Color::Rgb(0, 48, 135),     // Yankees navy
+            TeamColor::Purple  => Color::Rgb(104, 58, 150),   // Rockies purple
+            TeamColor::Magenta => Color::Magenta,
+            TeamColor::Brown   => Color::Rgb(165, 110, 55),   // Padres brown
+            TeamColor::Black   => Color::DarkGray,            // visible on dark backgrounds
+            TeamColor::Gray    => Color::Gray,
+            TeamColor::White   => Color::White,
+        }
+    }
+}
+
+impl Default for TeamColor {
+    fn default() -> Self {
+        TeamColor::White
+    }
+}
+
 // ── Half-inning direction ──────────────────────────────────────────────────
 
 /// Which half of an inning is currently being played.
@@ -374,6 +493,8 @@ impl Count {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Team {
     pub name: String,
+    #[serde(default)]
+    pub color: TeamColor,
     pub lineup: Vec<LineupSlot>,              // always 9 entries
     pub pitchers: Vec<PitcherAppearance>,
     pub current_pitcher_idx: usize,
@@ -383,10 +504,11 @@ pub struct Team {
 }
 
 impl Team {
-    /// Creates a team with a 9-player lineup and a single starting pitcher.
-    pub fn new(name: String, lineup: Vec<LineupSlot>, starter: PitcherInfo) -> Self {
+    /// Creates a team with a 9-player lineup, a color, and a single starting pitcher.
+    pub fn new(name: String, color: TeamColor, lineup: Vec<LineupSlot>, starter: PitcherInfo) -> Self {
         Team {
             name,
+            color,
             lineup,
             pitchers: vec![PitcherAppearance {
                 info: starter,
@@ -851,6 +973,43 @@ impl GameState {
 mod tests {
     use super::*;
     use crate::test_helpers::helpers::make_game;
+
+    // ── TeamColor ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_team_color_next_wraps() {
+        assert_eq!(TeamColor::Red.next(), TeamColor::Orange);
+        assert_eq!(TeamColor::White.next(), TeamColor::Red);
+    }
+
+    #[test]
+    fn test_team_color_prev_wraps() {
+        assert_eq!(TeamColor::Red.prev(), TeamColor::White);
+        assert_eq!(TeamColor::Orange.prev(), TeamColor::Red);
+    }
+
+    #[test]
+    fn test_team_color_default_is_white() {
+        assert_eq!(TeamColor::default(), TeamColor::White);
+    }
+
+    #[test]
+    fn test_team_color_name() {
+        assert_eq!(TeamColor::Red.name(), "Red");
+        assert_eq!(TeamColor::Orange.name(), "Orange");
+        assert_eq!(TeamColor::Navy.name(), "Navy");
+        assert_eq!(TeamColor::Brown.name(), "Brown");
+    }
+
+    #[test]
+    fn test_team_color_full_cycle() {
+        let start = TeamColor::Red;
+        let mut c = start;
+        for _ in 0..TeamColor::ALL.len() {
+            c = c.next();
+        }
+        assert_eq!(c, start);
+    }
 
     #[test]
     fn test_ip_display() {

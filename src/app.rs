@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::game::{AtBatResult, BatterGameStats, BatterInfo, GameState, LineupSlot, PitcherInfo, Team};
+use crate::game::{AtBatResult, BatterGameStats, BatterInfo, GameState, LineupSlot, PitcherInfo, Team, TeamColor};
 use crate::persist;
 
 // ── Errors ─────────────────────────────────────────────────────────────────
@@ -98,6 +98,8 @@ pub struct PlayerSetupRow {
 pub struct SetupData {
     pub away_name: String,
     pub home_name: String,
+    pub away_color: TeamColor,
+    pub home_color: TeamColor,
     pub away_lineup: Vec<PlayerSetupRow>,
     pub home_lineup: Vec<PlayerSetupRow>,
     pub away_starter: String,
@@ -109,6 +111,8 @@ impl Default for SetupData {
         SetupData {
             away_name: String::new(),
             home_name: String::new(),
+            away_color: TeamColor::default(),
+            home_color: TeamColor::default(),
             away_lineup: vec![PlayerSetupRow::default(); 9],
             home_lineup: vec![PlayerSetupRow::default(); 9],
             away_starter: String::new(),
@@ -129,6 +133,8 @@ pub enum LineupField {
 pub enum SetupSection {
     AwayTeamName,
     HomeTeamName,
+    AwayColor,
+    HomeColor,
     AwayLineup(usize, LineupField),
     HomeLineup(usize, LineupField),
     AwayStarter,
@@ -158,7 +164,9 @@ impl SetupSection {
     pub fn next(&self) -> SetupSection {
         match self {
             SetupSection::AwayTeamName => SetupSection::HomeTeamName,
-            SetupSection::HomeTeamName => SetupSection::AwayLineup(0, LineupField::Name),
+            SetupSection::HomeTeamName => SetupSection::AwayColor,
+            SetupSection::AwayColor => SetupSection::HomeColor,
+            SetupSection::HomeColor => SetupSection::AwayLineup(0, LineupField::Name),
             SetupSection::AwayLineup(row, LineupField::Name) => {
                 if cfg!(feature = "advanced-stats") {
                     SetupSection::AwayLineup(*row, LineupField::Avg)
@@ -201,7 +209,9 @@ impl SetupSection {
         match self {
             SetupSection::AwayTeamName => SetupSection::HomeStarter,
             SetupSection::HomeTeamName => SetupSection::AwayTeamName,
-            SetupSection::AwayLineup(0, LineupField::Name) => SetupSection::HomeTeamName,
+            SetupSection::AwayColor => SetupSection::HomeTeamName,
+            SetupSection::HomeColor => SetupSection::AwayColor,
+            SetupSection::AwayLineup(0, LineupField::Name) => SetupSection::HomeColor,
             SetupSection::AwayLineup(row, LineupField::Name) => {
                 if cfg!(feature = "advanced-stats") {
                     SetupSection::AwayLineup(row - 1, LineupField::Avg)
@@ -277,10 +287,13 @@ impl App {
     }
 
     /// Returns an immutable reference to the text of the currently focused setup field.
+    ///
+    /// For color fields this returns an empty string — use the typed color accessors instead.
     pub fn current_setup_field_value(&self) -> &str {
         match &self.setup_cursor {
             SetupSection::AwayTeamName => &self.setup.away_name,
             SetupSection::HomeTeamName => &self.setup.home_name,
+            SetupSection::AwayColor | SetupSection::HomeColor => "",
             SetupSection::AwayLineup(row, LineupField::Name) => &self.setup.away_lineup[*row].name,
             SetupSection::AwayLineup(row, LineupField::Avg) => &self.setup.away_lineup[*row].avg,
             SetupSection::HomeLineup(row, LineupField::Name) => &self.setup.home_lineup[*row].name,
@@ -290,10 +303,37 @@ impl App {
         }
     }
 
+    /// Returns `true` when the cursor is on a color-picker field.
+    pub fn is_color_field(&self) -> bool {
+        matches!(self.setup_cursor, SetupSection::AwayColor | SetupSection::HomeColor)
+    }
+
+    /// Cycles the focused team color forward.
+    pub fn next_color(&mut self) {
+        match self.setup_cursor {
+            SetupSection::AwayColor => self.setup.away_color = self.setup.away_color.next(),
+            SetupSection::HomeColor => self.setup.home_color = self.setup.home_color.next(),
+            _ => {}
+        }
+    }
+
+    /// Cycles the focused team color backward.
+    pub fn prev_color(&mut self) {
+        match self.setup_cursor {
+            SetupSection::AwayColor => self.setup.away_color = self.setup.away_color.prev(),
+            SetupSection::HomeColor => self.setup.home_color = self.setup.home_color.prev(),
+            _ => {}
+        }
+    }
+
     /// Appends `c` to the currently focused setup field.
     ///
     /// For batting-average fields, only ASCII digits and `'.'` are accepted; other characters are silently dropped.
+    /// Color fields are ignored (use [`next_color`]/[`prev_color`] instead).
     pub fn type_char_in_setup(&mut self, c: char) {
+        if self.is_color_field() {
+            return;
+        }
         let is_avg = matches!(
             &self.setup_cursor,
             SetupSection::AwayLineup(_, LineupField::Avg) | SetupSection::HomeLineup(_, LineupField::Avg)
@@ -309,6 +349,9 @@ impl App {
 
     /// Removes the last character from the currently focused setup field.
     pub fn backspace_in_setup(&mut self) {
+        if self.is_color_field() {
+            return;
+        }
         self.setup_field_mut().pop();
     }
 
@@ -317,6 +360,9 @@ impl App {
         match cursor {
             SetupSection::AwayTeamName => &mut self.setup.away_name,
             SetupSection::HomeTeamName => &mut self.setup.home_name,
+            SetupSection::AwayColor | SetupSection::HomeColor => {
+                unreachable!("color fields are not text fields")
+            }
             SetupSection::AwayLineup(row, LineupField::Name) => &mut self.setup.away_lineup[row].name,
             SetupSection::AwayLineup(row, LineupField::Avg) => &mut self.setup.away_lineup[row].avg,
             SetupSection::HomeLineup(row, LineupField::Name) => &mut self.setup.home_lineup[row].name,
@@ -349,11 +395,13 @@ impl App {
 
         let away = Team::new(
             self.setup.away_name.trim().to_string(),
+            self.setup.away_color,
             away_lineup,
             PitcherInfo { name: self.setup.away_starter.trim().to_string() },
         );
         let home = Team::new(
             self.setup.home_name.trim().to_string(),
+            self.setup.home_color,
             home_lineup,
             PitcherInfo { name: self.setup.home_starter.trim().to_string() },
         );
@@ -734,8 +782,10 @@ mod tests {
     #[test]
     fn test_setup_section_next_sequential() {
         assert_eq!(SetupSection::AwayTeamName.next(), SetupSection::HomeTeamName);
+        assert_eq!(SetupSection::HomeTeamName.next(), SetupSection::AwayColor);
+        assert_eq!(SetupSection::AwayColor.next(), SetupSection::HomeColor);
         assert_eq!(
-            SetupSection::HomeTeamName.next(),
+            SetupSection::HomeColor.next(),
             SetupSection::AwayLineup(0, LineupField::Name)
         );
         assert_eq!(SetupSection::AwayStarter.next(), SetupSection::HomeStarter);
@@ -744,10 +794,56 @@ mod tests {
     #[test]
     fn test_setup_section_prev_sequential() {
         assert_eq!(SetupSection::HomeTeamName.prev(), SetupSection::AwayTeamName);
+        assert_eq!(SetupSection::AwayColor.prev(), SetupSection::HomeTeamName);
+        assert_eq!(SetupSection::HomeColor.prev(), SetupSection::AwayColor);
+        assert_eq!(
+            SetupSection::AwayLineup(0, LineupField::Name).prev(),
+            SetupSection::HomeColor
+        );
         assert_eq!(SetupSection::HomeStarter.prev(), SetupSection::AwayStarter);
     }
 
-    // ── make_team / make_game sanity ───────────────────────────────────────
+    // ── Color cycling ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_next_color_cycles_away() {
+        let mut app = App::new();
+        app.setup_cursor = SetupSection::AwayColor;
+        app.setup.away_color = crate::game::TeamColor::Red;
+        app.next_color();
+        assert_eq!(app.setup.away_color, crate::game::TeamColor::Orange);
+    }
+
+    #[test]
+    fn test_prev_color_cycles_home() {
+        let mut app = App::new();
+        app.setup_cursor = SetupSection::HomeColor;
+        app.setup.home_color = crate::game::TeamColor::Red;
+        app.prev_color();
+        assert_eq!(app.setup.home_color, crate::game::TeamColor::White);
+    }
+
+    #[test]
+    fn test_type_char_ignored_on_color_field() {
+        let mut app = App::new();
+        app.setup_cursor = SetupSection::AwayColor;
+        app.type_char_in_setup('x');
+        // Should not panic and should remain on color field
+        assert_eq!(app.setup_cursor, SetupSection::AwayColor);
+    }
+
+    #[test]
+    fn test_start_game_propagates_colors() {
+        let mut app = filled_setup();
+        app.setup.away_color = crate::game::TeamColor::Red;
+        app.setup.home_color = crate::game::TeamColor::Blue;
+        app.start_game().unwrap();
+        let game = app.game.unwrap();
+        assert_eq!(game.away.color, crate::game::TeamColor::Red);
+        assert_eq!(game.home.color, crate::game::TeamColor::Blue);
+    }
+
+    // ── make_team / make_game sanity ─────────────────────────────────────────
 
     #[test]
     fn test_make_team_has_nine_players() {

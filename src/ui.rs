@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::app::{App, AppScreen, FielderResultType, InputMode, LineupField, SetupSection};
-use crate::game::{GameState, Half};
+use crate::game::{GameState, Half, TeamColor};
 
 pub fn draw(f: &mut Frame, app: &App) {
     match app.screen {
@@ -139,6 +139,7 @@ fn draw_setup(f: &mut Frame, app: &App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(3), // team name fields
+            Constraint::Length(3), // team color pickers
             Constraint::Length(1), // spacer
             Constraint::Length(1), // column headers
             Constraint::Length(9), // 9 lineup rows
@@ -161,8 +162,21 @@ fn draw_setup(f: &mut Frame, app: &App) {
         name_cols[1],
     );
 
+    // ── Team color pickers ─────────────────────────────────────────────────
+    let color_cols = two_col_split(rows[1]);
+    render_color_picker(
+        f, " Away Color ", app.setup.away_color,
+        app.setup_cursor == SetupSection::AwayColor,
+        color_cols[0],
+    );
+    render_color_picker(
+        f, " Home Color ", app.setup.home_color,
+        app.setup_cursor == SetupSection::HomeColor,
+        color_cols[1],
+    );
+
     // ── Column headers ─────────────────────────────────────────────────────
-    let hdr_cols = two_col_split(rows[2]);
+    let hdr_cols = two_col_split(rows[3]);
     let hdr_style = Style::default().fg(Color::DarkGray);
     let hdr_line = if cfg!(feature = "advanced-stats") {
         Line::from(vec![
@@ -180,7 +194,7 @@ fn draw_setup(f: &mut Frame, app: &App) {
     f.render_widget(Paragraph::new(hdr_line), hdr_cols[1]);
 
     // ── Lineup rows ────────────────────────────────────────────────────────
-    let lineup_area = rows[3];
+    let lineup_area = rows[4];
     for i in 0..9 {
         let row_rect = Rect {
             x: lineup_area.x,
@@ -207,7 +221,7 @@ fn draw_setup(f: &mut Frame, app: &App) {
     }
 
     // ── Starter fields ─────────────────────────────────────────────────────
-    let starter_cols = two_col_split(rows[5]);
+    let starter_cols = two_col_split(rows[6]);
     render_input_field(
         f, " Away Starter (P) ", &app.setup.away_starter,
         app.setup_cursor == SetupSection::AwayStarter,
@@ -228,10 +242,10 @@ fn draw_setup(f: &mut Frame, app: &App) {
             Style::default().fg(Color::DarkGray),
         ))
     };
-    f.render_widget(Paragraph::new(footer), rows[6]);
+    f.render_widget(Paragraph::new(footer), rows[7]);
 
     // ── Cursor positioning ─────────────────────────────────────────────────
-    let (cx, cy) = setup_cursor_pos(app, &name_cols, lineup_area, &starter_cols);
+    let (cx, cy) = setup_cursor_pos(app, &name_cols, &color_cols, lineup_area, &starter_cols);
     if cx < area.x + area.width && cy < area.y + area.height {
         f.set_cursor_position((cx, cy));
     }
@@ -240,6 +254,7 @@ fn draw_setup(f: &mut Frame, app: &App) {
 fn setup_cursor_pos(
     app: &App,
     name_cols: &[Rect],
+    color_cols: &[Rect],
     lineup_area: Rect,
     starter_cols: &[Rect],
 ) -> (u16, u16) {
@@ -249,6 +264,9 @@ fn setup_cursor_pos(
     match &app.setup_cursor {
         SetupSection::AwayTeamName => (name_cols[0].x + 1 + vlen, name_cols[0].y + 1),
         SetupSection::HomeTeamName => (name_cols[1].x + 1 + vlen, name_cols[1].y + 1),
+        // Color fields: hide the text cursor by placing it inside the block
+        SetupSection::AwayColor => (color_cols[0].x + 1, color_cols[0].y + 1),
+        SetupSection::HomeColor => (color_cols[1].x + 1, color_cols[1].y + 1),
         SetupSection::AwayStarter => (starter_cols[0].x + 1 + vlen, starter_cols[0].y + 1),
         SetupSection::HomeStarter => (starter_cols[1].x + 1 + vlen, starter_cols[1].y + 1),
         // Lineup: row has " N  {name:<18}  {avg}" — name starts at col 5, avg at col 25
@@ -267,6 +285,37 @@ fn setup_cursor_pos(
             (half_x + 25 + vlen, lineup_area.y + *i as u16)
         }
     }
+}
+
+fn render_color_picker(f: &mut Frame, title: &str, color: TeamColor, focused: bool, area: Rect) {
+    let border_style = if focused {
+        Style::default().fg(Color::Yellow)
+    } else {
+        Style::default().fg(Color::DarkGray)
+    };
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(border_style);
+
+    let rcolor = color.to_color();
+    let swatch = "\u{2588}\u{2588}\u{2588}";
+    let content = if focused {
+        Line::from(vec![
+            Span::styled(" \u{25c0} ", Style::default().fg(Color::Yellow)),
+            Span::styled(swatch, Style::default().fg(rcolor)),
+            Span::styled(format!(" {} ", color.name()), Style::default().fg(rcolor).add_modifier(Modifier::BOLD)),
+            Span::styled(swatch, Style::default().fg(rcolor)),
+            Span::styled(" \u{25b6}", Style::default().fg(Color::Yellow)),
+        ])
+    } else {
+        Line::from(vec![
+            Span::styled(format!("   {} {} {}", swatch, color.name(), swatch), Style::default().fg(rcolor)),
+        ])
+    };
+
+    f.render_widget(Paragraph::new(content).block(block), area);
 }
 
 fn render_input_field(f: &mut Frame, title: &str, value: &str, focused: bool, area: Rect) {
@@ -369,12 +418,12 @@ fn draw_line_score(f: &mut Frame, game: &GameState, area: Rect) {
     let header = Row::new(header_cells).style(Style::default().add_modifier(Modifier::BOLD));
 
     let away_style = if game.half == Half::Top {
-        Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+        Style::default().fg(game.away.color.to_color()).add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::DarkGray)
     };
     let home_style = if game.half == Half::Bottom {
-        Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+        Style::default().fg(game.home.color.to_color()).add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::DarkGray)
     };
@@ -859,7 +908,7 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
                     Block::default()
                         .title(format!(" {} Batting ", team.name))
                         .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::DarkGray)),
+                        .border_style(Style::default().fg(team.color.to_color())),
                 ),
             area,
         );
@@ -903,7 +952,7 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
                     Block::default()
                         .title(format!(" {} Batting ", team.name))
                         .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::DarkGray)),
+                        .border_style(Style::default().fg(team.color.to_color())),
                 ),
             area,
         );
@@ -928,7 +977,7 @@ fn draw_summary_pitching(f: &mut Frame, game: &GameState, area: Rect) {
             Row::new(std::iter::once(team.name.clone())
                 .chain(std::iter::repeat(String::new()).take(col_count - 1))
                 .collect::<Vec<_>>())
-                .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                .style(Style::default().fg(team.color.to_color()).add_modifier(Modifier::BOLD)),
         );
         for p in &team.pitchers {
             let name = match p.decision {

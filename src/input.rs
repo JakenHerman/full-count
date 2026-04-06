@@ -39,6 +39,7 @@ fn handle_title_key(app: &mut App, key: KeyEvent) {
             2 => app.should_quit = true,
             _ => {}
         },
+        KeyCode::Char('q') => app.should_quit = true,
         _ => {}
     }
 }
@@ -189,12 +190,13 @@ fn handle_waiting(app: &mut App, key: KeyEvent) {
         }
 
         // ── Play log scroll ───────────────────────────────────────────────
+        // Note: 'k' (vim up) is already bound to strikeout swinging; use ↑ to scroll up.
         KeyCode::Up => {
             if app.play_log_scroll > 0 {
                 app.play_log_scroll -= 1;
             }
         }
-        KeyCode::Down => {
+        KeyCode::Down | KeyCode::Char('j') => {
             let Ok(game) = app.game() else { return };
             let len = game.play_log.len();
             if len > 0 {
@@ -404,7 +406,7 @@ fn handle_save_prompt(app: &mut App, key: KeyEvent) {
 
 fn handle_load_key(app: &mut App, key: KeyEvent) {
     match key.code {
-        KeyCode::Esc => {
+        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => {
             app.screen = crate::app::AppScreen::Title;
         }
         KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') => {
@@ -415,6 +417,14 @@ fn handle_load_key(app: &mut App, key: KeyEvent) {
         KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') => {
             if !app.load_slots.is_empty() {
                 app.load_cursor = (app.load_cursor + 1).min(app.load_slots.len() - 1);
+            }
+        }
+        KeyCode::Char('g') => {
+            app.load_cursor = 0;
+        }
+        KeyCode::Char('G') => {
+            if !app.load_slots.is_empty() {
+                app.load_cursor = app.load_slots.len() - 1;
             }
         }
         KeyCode::Enter => {

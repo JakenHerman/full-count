@@ -465,3 +465,9 @@ The codebase is organized as:
 ## License
 
 MIT
+
+---
+
+<p align="center">
+  <img src="baseball-comic.jpeg" alt="Sure, baseball is boring, but if you learn how to keep score it's also math." width="500">
+</p>

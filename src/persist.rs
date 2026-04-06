@@ -17,6 +17,11 @@ pub struct SaveFile {
     #[serde(default)]
     pub advanced_stats: bool,
     pub game: GameState,
+    /// Snapshots of the game state captured before each action, used for replay.
+    ///
+    /// Absent in saves created before the replay feature was added.
+    #[serde(default)]
+    pub snapshots: Vec<GameState>,
 }
 
 // ── Save slot (used by the load menu) ──────────────────────────────────────
@@ -50,8 +55,8 @@ pub fn saves_dir() -> PathBuf {
 ///
 /// # Errors
 /// Returns an error string if the directory cannot be created or the file cannot be written.
-pub fn save_game_with_name(game: &GameState, name: &str) -> Result<String, String> {
-    save_game_with_name_in_dir(game, name, &saves_dir())
+pub fn save_game_with_name(game: &GameState, name: &str, snapshots: &[GameState]) -> Result<String, String> {
+    save_game_with_name_in_dir(game, name, snapshots, &saves_dir())
 }
 
 /// Saves the game to `dir` under a sanitized version of `name`.
@@ -60,7 +65,7 @@ pub fn save_game_with_name(game: &GameState, name: &str) -> Result<String, Strin
 ///
 /// # Errors
 /// Returns an error string if the directory cannot be created or the file cannot be written.
-pub fn save_game_with_name_in_dir(game: &GameState, name: &str, dir: &Path) -> Result<String, String> {
+pub fn save_game_with_name_in_dir(game: &GameState, name: &str, snapshots: &[GameState], dir: &Path) -> Result<String, String> {
     fs::create_dir_all(dir).map_err(|e| format!("Cannot create save dir: {}", e))?;
 
     let secs = SystemTime::now()
@@ -70,7 +75,7 @@ pub fn save_game_with_name_in_dir(game: &GameState, name: &str, dir: &Path) -> R
 
     let filename = format!("{}.json", sanitize_filename(name));
     let path = dir.join(&filename);
-    write_save_file(game, secs, &path)?;
+    write_save_file(game, secs, snapshots, &path)?;
     Ok(filename)
 }
 
@@ -78,14 +83,15 @@ pub fn save_game_with_name_in_dir(game: &GameState, name: &str, dir: &Path) -> R
 #[cfg(test)]
 pub fn save_game_to_dir(game: &GameState, dir: &Path) -> Result<String, String> {
     let name = format!("{}-vs-{}", sanitize(&game.away.name), sanitize(&game.home.name));
-    save_game_with_name_in_dir(game, &name, dir)
+    save_game_with_name_in_dir(game, &name, &[], dir)
 }
 
-fn write_save_file(game: &GameState, saved_at_secs: u64, path: &Path) -> Result<(), String> {
+fn write_save_file(game: &GameState, saved_at_secs: u64, snapshots: &[GameState], path: &Path) -> Result<(), String> {
     let save = SaveFile {
         saved_at_secs,
         advanced_stats: cfg!(feature = "advanced-stats"),
         game: game.clone(),
+        snapshots: snapshots.to_vec(),
     };
     let json = serde_json::to_string_pretty(&save)
         .map_err(|e| format!("Serialization error: {}", e))?;
@@ -99,7 +105,20 @@ fn write_save_file(game: &GameState, saved_at_secs: u64, path: &Path) -> Result<
 /// # Errors
 /// Returns `"Read error: ..."` if the file cannot be read, or `"Parse error: ..."` if the JSON
 /// cannot be deserialized into a [`SaveFile`].
+/// Convenience wrapper that discards replay snapshots.
+///
+/// Used by tests and the `--load` CLI path where snapshots are loaded separately.
+#[allow(dead_code)]
 pub fn load_game(path: &Path) -> Result<GameState, String> {
+    let (game, _snapshots) = load_game_full(path)?;
+    Ok(game)
+}
+
+/// Reads and deserializes a save file, returning the stored [`GameState`] and replay snapshots.
+///
+/// # Errors
+/// Returns an error string if the file cannot be read, parsed, or has a feature mismatch.
+pub fn load_game_full(path: &Path) -> Result<(GameState, Vec<GameState>), String> {
     let content = fs::read_to_string(path)
         .map_err(|e| format!("Read error: {}", e))?;
     let save: SaveFile = serde_json::from_str(&content)
@@ -121,7 +140,7 @@ pub fn load_game(path: &Path) -> Result<GameState, String> {
         );
     }
 
-    Ok(save.game)
+    Ok((save.game, save.snapshots))
 }
 
 // ── List ──────────────────────────────────────────────────────────────────

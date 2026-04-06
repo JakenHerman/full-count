@@ -16,6 +16,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         AppScreen::Scoring => draw_scoring(f, app),
         AppScreen::Summary => draw_summary(f, app),
         AppScreen::LoadGame => draw_load_screen(f, app),
+        AppScreen::Replay => draw_replay(f, app),
     }
 }
 
@@ -1099,12 +1100,84 @@ fn draw_load_screen(f: &mut Frame, app: &App) {
         );
     }
 
+    let footer_text = if app.load_slots.is_empty() {
+        " [Esc] back"
+    } else {
+        " [\u{2191}\u{2193}/J/K] select   [Enter] load   [R] replay   [Esc] back"
+    };
     f.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            " [\u{2191}\u{2193}/J/K] select   [Enter] load   [Esc] back",
+            footer_text,
             Style::default().fg(Color::DarkGray),
         ))),
         chunks[1],
+    );
+}
+
+// ── Replay Screen ─────────────────────────────────────────────────────────
+
+fn draw_replay(f: &mut Frame, app: &App) {
+    let Some(game) = app.replay_game() else { return };
+    let area = f.area();
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(5),  // line score
+            Constraint::Length(10), // diamond + batter/pitcher info
+            Constraint::Min(5),     // play log
+            Constraint::Length(3),  // replay footer
+        ])
+        .split(area);
+
+    draw_line_score(f, game, chunks[0]);
+
+    let mid = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
+        .split(chunks[1]);
+
+    draw_diamond(f, game, mid[0]);
+    draw_at_bat_info(f, game, mid[1]);
+    draw_play_log(f, game, 0, chunks[2]);
+    draw_replay_footer(f, app, chunks[3]);
+}
+
+fn draw_replay_footer(f: &mut Frame, app: &App, area: Rect) {
+    let total = app.replay_snapshots.len();
+    let pos = app.replay_cursor + 1;
+
+    let position_text = format!(" Step {} of {} ", pos, total);
+
+    let text = Text::from(vec![
+        Line::from(vec![
+            Span::styled(
+                " \u{25c0} [\u{2190}/H] prev   ",
+                Style::default().fg(Color::DarkGray),
+            ),
+            Span::styled(
+                &position_text,
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                "   [\u{2192}/L] next \u{25b6}",
+                Style::default().fg(Color::DarkGray),
+            ),
+        ]),
+        Line::from(Span::styled(
+            " [G] first   [Shift+G] last   [Esc/Q] exit replay",
+            Style::default().fg(Color::DarkGray),
+        )),
+    ]);
+
+    f.render_widget(
+        Paragraph::new(text).block(
+            Block::default()
+                .title(" \u{25b6} Replay ")
+                .borders(Borders::TOP)
+                .border_style(Style::default().fg(Color::Cyan)),
+        ),
+        area,
     );
 }
 

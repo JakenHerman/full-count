@@ -37,6 +37,13 @@ struct Cli {
     /// Bare names and names with .json are looked up in ~/.full-count/saves/.
     #[arg(short, long, value_name = "SAVE_FILE")]
     load: Option<PathBuf>,
+
+    /// Open the loaded game in replay mode instead of resuming scoring.
+    ///
+    /// Must be combined with --load. Walk through the game pitch-by-pitch
+    /// using arrow keys.
+    #[arg(short, long, requires = "load")]
+    replay: bool,
 }
 
 /// Resolves a user-supplied `--load` argument to an actual file path using three-stage lookup:
@@ -104,14 +111,34 @@ fn main() -> io::Result<()> {
 
     if let Some(arg) = cli.load {
         let path = resolve_save_path(&arg);
-        match persist::load_game(&path) {
-            Ok(game) => {
-                app.game = Some(game);
-                app.screen = AppScreen::Scoring;
+        if cli.replay {
+            match persist::load_game_full(&path) {
+                Ok((game, snapshots)) => {
+                    if snapshots.is_empty() {
+                        eprintln!("full-count: no replay data in '{}'. Re-save during scoring to capture it.", arg.display());
+                        std::process::exit(1);
+                    }
+                    app.replay_snapshots = snapshots;
+                    app.replay_cursor = 0;
+                    app.game = Some(game);
+                    app.screen = AppScreen::Replay;
+                }
+                Err(e) => {
+                    eprintln!("full-count: could not load '{}': {}", arg.display(), e);
+                    std::process::exit(1);
+                }
             }
-            Err(e) => {
-                eprintln!("full-count: could not load '{}': {}", arg.display(), e);
-                std::process::exit(1);
+        } else {
+            match persist::load_game_full(&path) {
+                Ok((game, snapshots)) => {
+                    app.replay_snapshots = snapshots;
+                    app.game = Some(game);
+                    app.screen = AppScreen::Scoring;
+                }
+                Err(e) => {
+                    eprintln!("full-count: could not load '{}': {}", arg.display(), e);
+                    std::process::exit(1);
+                }
             }
         }
     }

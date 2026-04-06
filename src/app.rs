@@ -23,6 +23,7 @@ pub enum AppScreen {
     Scoring,
     Summary,
     LoadGame,
+    Replay,
 }
 
 // ── Input modes (within Scoring screen) ───────────────────────────────────
@@ -255,6 +256,10 @@ pub struct App {
     pub load_cursor: usize,
     pub undo_stack: Vec<GameState>,
     pub title_cursor: u8,
+    /// Snapshots captured during scoring for replay persistence.
+    pub replay_snapshots: Vec<GameState>,
+    /// Current position in `replay_snapshots` when in Replay mode.
+    pub replay_cursor: usize,
 }
 
 impl App {
@@ -273,6 +278,8 @@ impl App {
             load_cursor: 0,
             undo_stack: Vec::new(),
             title_cursor: 0,
+            replay_snapshots: Vec::new(),
+            replay_cursor: 0,
         }
     }
 
@@ -406,7 +413,10 @@ impl App {
             PitcherInfo { name: self.setup.home_starter.trim().to_string() },
         );
 
-        self.game = Some(GameState::new(away, home));
+        let game = GameState::new(away, home);
+        self.replay_snapshots.clear();
+        self.replay_snapshots.push(game.clone());
+        self.game = Some(game);
         self.screen = AppScreen::Scoring;
         Ok(())
     }
@@ -447,7 +457,8 @@ impl App {
             if self.undo_stack.len() >= 100 {
                 self.undo_stack.remove(0);
             }
-            self.undo_stack.push(snapshot);
+            self.undo_stack.push(snapshot.clone());
+            self.replay_snapshots.push(snapshot);
         }
     }
 
@@ -472,7 +483,7 @@ impl App {
     /// Returns an error string if there is no active game or the write fails.
     pub fn save_game_named(&self, name: &str) -> Result<String, String> {
         match &self.game {
-            Some(game) => persist::save_game_with_name(game, name),
+            Some(game) => persist::save_game_with_name(game, name, &self.replay_snapshots),
             None => Err("No active game to save".into()),
         }
     }
@@ -493,12 +504,68 @@ impl App {
             return Err("No saves available".into());
         }
         let path = self.load_slots[self.load_cursor].path.clone();
-        let game = persist::load_game(&path)?;
+        let (game, snapshots) = persist::load_game_full(&path)?;
+        self.replay_snapshots = snapshots;
         self.game = Some(game);
         self.input_mode = InputMode::WaitingForResult;
         self.play_log_scroll = 0;
         self.screen = AppScreen::Scoring;
         Ok(())
+    }
+
+    /// Loads the highlighted save file into replay mode.
+    ///
+    /// # Errors
+    /// Returns an error string if the saves list is empty, the file cannot be read,
+    /// or the save contains no replay snapshots.
+    pub fn load_selected_for_replay(&mut self) -> Result<(), String> {
+        if self.load_slots.is_empty() {
+            return Err("No saves available".into());
+        }
+        let path = self.load_slots[self.load_cursor].path.clone();
+        let (game, snapshots) = persist::load_game_full(&path)?;
+        if snapshots.is_empty() {
+            return Err("This save has no replay data. Re-save during scoring to capture it.".into());
+        }
+        self.replay_snapshots = snapshots;
+        self.replay_cursor = 0;
+        self.game = Some(game);
+        self.play_log_scroll = 0;
+        self.screen = AppScreen::Replay;
+        Ok(())
+    }
+
+    // ── Replay navigation ──────────────────────────────────────────────
+
+    /// Returns the game state snapshot at the current replay cursor position.
+    pub fn replay_game(&self) -> Option<&GameState> {
+        self.replay_snapshots.get(self.replay_cursor)
+    }
+
+    /// Advances the replay cursor by one step.
+    pub fn replay_forward(&mut self) {
+        if self.replay_cursor + 1 < self.replay_snapshots.len() {
+            self.replay_cursor += 1;
+        }
+    }
+
+    /// Moves the replay cursor back by one step.
+    pub fn replay_backward(&mut self) {
+        if self.replay_cursor > 0 {
+            self.replay_cursor -= 1;
+        }
+    }
+
+    /// Jumps the replay cursor to the first snapshot.
+    pub fn replay_jump_start(&mut self) {
+        self.replay_cursor = 0;
+    }
+
+    /// Jumps the replay cursor to the last snapshot.
+    pub fn replay_jump_end(&mut self) {
+        if !self.replay_snapshots.is_empty() {
+            self.replay_cursor = self.replay_snapshots.len() - 1;
+        }
     }
 }
 

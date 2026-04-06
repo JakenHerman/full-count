@@ -18,6 +18,7 @@ pub fn handle_event(app: &mut App, event: Event) {
             AppScreen::Scoring => handle_scoring_key(app, key),
             AppScreen::Summary => handle_summary_key(app, key),
             AppScreen::LoadGame => handle_load_key(app, key),
+            AppScreen::Replay => handle_replay_key(app, key),
         }
     }
 }
@@ -502,11 +503,32 @@ fn handle_load_key(app: &mut App, key: KeyEvent) {
                 }
             }
         }
+        KeyCode::Char('r') | KeyCode::Char('R') => {
+            match app.load_selected_for_replay() {
+                Ok(()) => {}
+                Err(e) => app.set_status(e),
+            }
+        }
         _ => {}
     }
 }
 
-// ── Summary ────────────────────────────────────────────────────────────────
+// ── Replay ─────────────────────────────────────────────────────────────
+
+fn handle_replay_key(app: &mut App, key: KeyEvent) {
+    match key.code {
+        KeyCode::Right | KeyCode::Char('l') | KeyCode::Char('L') => app.replay_forward(),
+        KeyCode::Left | KeyCode::Char('h') => app.replay_backward(),
+        KeyCode::Home | KeyCode::Char('g') => app.replay_jump_start(),
+        KeyCode::End | KeyCode::Char('G') => app.replay_jump_end(),
+        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => {
+            app.screen = AppScreen::Title;
+        }
+        _ => {}
+    }
+}
+
+// ── Summary ────────────────────────────────────────────────────────────
 
 fn handle_summary_key(app: &mut App, key: KeyEvent) {
     match key.code {

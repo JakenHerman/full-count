@@ -2,6 +2,8 @@ mod app;
 mod game;
 mod input;
 mod persist;
+#[cfg(test)]
+mod test_helpers;
 mod ui;
 
 use std::io::{self, stdout};
@@ -37,10 +39,14 @@ struct Cli {
     load: Option<PathBuf>,
 }
 
-/// Resolve a user-supplied save path:
-///   1. As-is if it already exists.
-///   2. Inside ~/.full-count/saves/.
-///   3. Inside ~/.full-count/saves/ with .json appended (bare name).
+/// Resolves a user-supplied `--load` argument to an actual file path using three-stage lookup:
+///
+/// 1. Returns `arg` as-is if it already exists on disk.
+/// 2. Looks for `arg` inside `~/.full-count/saves/`.
+/// 3. Appends `.json` to a bare name (no extension) and looks again in the saves directory.
+///
+/// If none of the candidates exist, the original path is returned so that the subsequent
+/// [`persist::load_game`] call produces a clear "file not found" error.
 fn resolve_save_path(arg: &Path) -> PathBuf {
     if arg.exists() {
         return arg.to_path_buf();
@@ -62,12 +68,14 @@ fn resolve_save_path(arg: &Path) -> PathBuf {
 
 // ── Terminal setup ─────────────────────────────────────────────────────────
 
+/// Enables raw mode and the alternate screen buffer, then creates a Ratatui [`Terminal`].
 fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<io::Stdout>>> {
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen)?;
     Terminal::new(CrosstermBackend::new(stdout()))
 }
 
+/// Disables raw mode, leaves the alternate screen, and restores the cursor.
 fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> {
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -75,6 +83,7 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io
     Ok(())
 }
 
+/// Installs a panic hook that restores the terminal to a usable state before printing panic info.
 fn setup_panic_hook() {
     let original = panic::take_hook();
     panic::set_hook(Box::new(move |info| {

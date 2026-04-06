@@ -3,6 +3,9 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crate::app::{AdvanceStage, App, AppScreen, FielderResultType, InputMode, SetupSection};
 use crate::game::{AtBatResult, InningOutcome, PitchEvent, PitchOutcome, PitcherInfo};
 
+/// Routes a crossterm [`Event`] to the appropriate screen handler.
+///
+/// `Ctrl-C` is handled globally before dispatching to per-screen logic.
 pub fn handle_event(app: &mut App, event: Event) {
     if let Event::Key(key) = event {
         if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
@@ -294,32 +297,21 @@ fn handle_rbi_input(app: &mut App, key: KeyEvent) {
 
 fn handle_pitcher_change(app: &mut App, key: KeyEvent) {
     if let InputMode::PitcherChange { name_buffer } = app.input_mode.clone() {
-        match key.code {
-            KeyCode::Esc => {
-                app.input_mode = InputMode::WaitingForResult;
-            }
-            KeyCode::Backspace => {
-                let mut buf = name_buffer;
-                buf.pop();
-                app.input_mode = InputMode::PitcherChange { name_buffer: buf };
-            }
-            KeyCode::Char(c) => {
-                let mut buf = name_buffer;
-                buf.push(c);
-                app.input_mode = InputMode::PitcherChange { name_buffer: buf };
-            }
-            KeyCode::Enter => {
-                if !name_buffer.trim().is_empty() {
-                    let name = name_buffer.trim().to_string();
-                    app.push_undo();
-                    if let Ok(game) = app.game_mut() {
-                        game.change_pitcher(PitcherInfo { name: name.clone() });
-                    }
-                    app.set_status(format!("Now pitching: {}", name));
+        if key.code == KeyCode::Enter {
+            if !name_buffer.trim().is_empty() {
+                let name = name_buffer.trim().to_string();
+                app.push_undo();
+                if let Ok(game) = app.game_mut() {
+                    game.change_pitcher(PitcherInfo { name: name.clone() });
                 }
-                app.input_mode = InputMode::WaitingForResult;
+                app.set_status(format!("Now pitching: {}", name));
             }
-            _ => {}
+            app.input_mode = InputMode::WaitingForResult;
+            return;
+        }
+        match update_text_buffer(name_buffer, key.code) {
+            None => app.input_mode = InputMode::WaitingForResult,
+            Some(buf) => app.input_mode = InputMode::PitcherChange { name_buffer: buf },
         }
     }
 }
@@ -374,30 +366,19 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
 
 fn handle_save_prompt(app: &mut App, key: KeyEvent) {
     if let InputMode::SavePrompt { buffer } = app.input_mode.clone() {
-        match key.code {
-            KeyCode::Esc => {
-                app.input_mode = InputMode::WaitingForResult;
-            }
-            KeyCode::Backspace => {
-                let mut buf = buffer;
-                buf.pop();
-                app.input_mode = InputMode::SavePrompt { buffer: buf };
-            }
-            KeyCode::Char(c) => {
-                let mut buf = buffer;
-                buf.push(c);
-                app.input_mode = InputMode::SavePrompt { buffer: buf };
-            }
-            KeyCode::Enter => {
-                if !buffer.trim().is_empty() {
-                    match app.save_game_named(&buffer) {
-                        Ok(filename) => app.set_status(format!("Saved: {}", filename)),
-                        Err(e) => app.set_status(e),
-                    }
+        if key.code == KeyCode::Enter {
+            if !buffer.trim().is_empty() {
+                match app.save_game_named(&buffer) {
+                    Ok(filename) => app.set_status(format!("Saved: {}", filename)),
+                    Err(e) => app.set_status(e),
                 }
-                app.input_mode = InputMode::WaitingForResult;
             }
-            _ => {}
+            app.input_mode = InputMode::WaitingForResult;
+            return;
+        }
+        match update_text_buffer(buffer, key.code) {
+            None => app.input_mode = InputMode::WaitingForResult,
+            Some(buf) => app.input_mode = InputMode::SavePrompt { buffer: buf },
         }
     }
 }
@@ -476,6 +457,26 @@ fn handle_inning_outcome(app: &mut App, outcome: InningOutcome) {
     }
 }
 
+/// Handles the common Esc / Backspace / Char key pattern for single-line text
+/// buffers. Returns `None` on Esc (caller should cancel), or `Some(updated)`
+/// otherwise (Enter returns the buffer unchanged so the caller can act on it).
+fn update_text_buffer(buf: String, key: KeyCode) -> Option<String> {
+    match key {
+        KeyCode::Esc => None,
+        KeyCode::Backspace => {
+            let mut b = buf;
+            b.pop();
+            Some(b)
+        }
+        KeyCode::Char(c) => {
+            let mut b = buf;
+            b.push(c);
+            Some(b)
+        }
+        _ => Some(buf),
+    }
+}
+
 fn parse_fielder_sequence(input: &str, result_type: &FielderResultType) -> Result<AtBatResult, String> {
     let input = input.trim();
     if input.is_empty() {
@@ -521,5 +522,136 @@ fn parse_fielder_sequence(input: &str, result_type: &FielderResultType) -> Resul
         FielderResultType::Groundout => {
             Ok(AtBatResult::Groundout(positions))
         }
+    }
+}
+
+// ── Tests ──────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::FielderResultType;
+    use crate::game::AtBatResult;
+
+    // ── parse_fielder_sequence ─────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_groundout_single_fielder() {
+        let r = parse_fielder_sequence("6", &FielderResultType::Groundout).unwrap();
+        assert_eq!(r, AtBatResult::Groundout(vec![6]));
+    }
+
+    #[test]
+    fn test_parse_groundout_multi_fielder() {
+        let r = parse_fielder_sequence("6-3", &FielderResultType::Groundout).unwrap();
+        assert_eq!(r, AtBatResult::Groundout(vec![6, 3]));
+    }
+
+    #[test]
+    fn test_parse_groundout_three_fielders() {
+        let r = parse_fielder_sequence("5-4-3", &FielderResultType::Groundout).unwrap();
+        assert_eq!(r, AtBatResult::Groundout(vec![5, 4, 3]));
+    }
+
+    #[test]
+    fn test_parse_flyout_single() {
+        let r = parse_fielder_sequence("8", &FielderResultType::Flyout).unwrap();
+        assert_eq!(r, AtBatResult::Flyout(8));
+    }
+
+    #[test]
+    fn test_parse_flyout_rejects_multi() {
+        assert!(parse_fielder_sequence("8-4", &FielderResultType::Flyout).is_err());
+    }
+
+    #[test]
+    fn test_parse_error_single() {
+        let r = parse_fielder_sequence("6", &FielderResultType::Error).unwrap();
+        assert_eq!(r, AtBatResult::Error(6));
+    }
+
+    #[test]
+    fn test_parse_error_rejects_multi() {
+        assert!(parse_fielder_sequence("6-4", &FielderResultType::Error).is_err());
+    }
+
+    #[test]
+    fn test_parse_sac_fly_single() {
+        let r = parse_fielder_sequence("9", &FielderResultType::SacrificeFly).unwrap();
+        assert_eq!(r, AtBatResult::SacrificeFly(9));
+    }
+
+    #[test]
+    fn test_parse_sac_fly_rejects_multi() {
+        assert!(parse_fielder_sequence("9-4", &FielderResultType::SacrificeFly).is_err());
+    }
+
+    #[test]
+    fn test_parse_double_play_two_fielders() {
+        let r = parse_fielder_sequence("6-4-3", &FielderResultType::DoublePlay).unwrap();
+        assert_eq!(r, AtBatResult::DoublePlay(vec![6, 4, 3]));
+    }
+
+    #[test]
+    fn test_parse_double_play_requires_two_plus() {
+        assert!(parse_fielder_sequence("6", &FielderResultType::DoublePlay).is_err());
+    }
+
+    #[test]
+    fn test_parse_empty_input_errors() {
+        assert!(parse_fielder_sequence("", &FielderResultType::Groundout).is_err());
+        assert!(parse_fielder_sequence("   ", &FielderResultType::Flyout).is_err());
+    }
+
+    #[test]
+    fn test_parse_invalid_position_zero() {
+        assert!(parse_fielder_sequence("0", &FielderResultType::Flyout).is_err());
+    }
+
+    #[test]
+    fn test_parse_invalid_position_ten() {
+        assert!(parse_fielder_sequence("10", &FielderResultType::Flyout).is_err());
+    }
+
+    #[test]
+    fn test_parse_non_digit_errors() {
+        assert!(parse_fielder_sequence("abc", &FielderResultType::Groundout).is_err());
+    }
+
+    #[test]
+    fn test_parse_groundout_whitespace_trimmed() {
+        let r = parse_fielder_sequence(" 6-3 ", &FielderResultType::Groundout).unwrap();
+        assert_eq!(r, AtBatResult::Groundout(vec![6, 3]));
+    }
+
+    // ── update_text_buffer ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_update_text_buffer_esc_returns_none() {
+        assert!(update_text_buffer("hello".into(), KeyCode::Esc).is_none());
+    }
+
+    #[test]
+    fn test_update_text_buffer_backspace_pops() {
+        let r = update_text_buffer("hello".into(), KeyCode::Backspace).unwrap();
+        assert_eq!(r, "hell");
+    }
+
+    #[test]
+    fn test_update_text_buffer_char_appends() {
+        let r = update_text_buffer("hel".into(), KeyCode::Char('p')).unwrap();
+        assert_eq!(r, "help");
+    }
+
+    #[test]
+    fn test_update_text_buffer_enter_returns_unchanged() {
+        let r = update_text_buffer("hello".into(), KeyCode::Enter).unwrap();
+        assert_eq!(r, "hello");
+    }
+
+    #[test]
+    fn test_update_text_buffer_backspace_empty_noop() {
+        let r = update_text_buffer(String::new(), KeyCode::Backspace).unwrap();
+        assert_eq!(r, "");
     }
 }

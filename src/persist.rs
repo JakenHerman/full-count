@@ -8,22 +8,29 @@ use crate::game::GameState;
 
 // ── On-disk format ─────────────────────────────────────────────────────────
 
+/// The JSON structure written to disk when saving a game.
 #[derive(Serialize, Deserialize)]
 pub struct SaveFile {
+    /// Unix timestamp (seconds) recorded at save time.
     pub saved_at_secs: u64,
     pub game: GameState,
 }
 
 // ── Save slot (used by the load menu) ──────────────────────────────────────
 
+/// A reference to a save file shown in the load menu.
 #[derive(Debug, Clone)]
 pub struct SaveSlot {
     pub path: PathBuf,
+    /// Human-readable summary line shown in the UI (e.g. `"Away vs Home  |  Top 3  |  2-1"`).
     pub display: String,
 }
 
 // ── Directory ─────────────────────────────────────────────────────────────
 
+/// Returns the default save directory: `~/.full-count/saves/`.
+///
+/// Falls back to the current working directory if `$HOME` is not set.
 pub fn saves_dir() -> PathBuf {
     std::env::var("HOME")
         .map(PathBuf::from)
@@ -34,13 +41,22 @@ pub fn saves_dir() -> PathBuf {
 
 // ── Save ──────────────────────────────────────────────────────────────────
 
-/// Save with a user-supplied name to the default saves directory.
-/// Returns the filename written on success.
+/// Saves the game to the default saves directory under a sanitized version of `name`.
+///
+/// Returns the filename written on success (e.g. `"my-game.json"`).
+///
+/// # Errors
+/// Returns an error string if the directory cannot be created or the file cannot be written.
 pub fn save_game_with_name(game: &GameState, name: &str) -> Result<String, String> {
     save_game_with_name_in_dir(game, name, &saves_dir())
 }
 
-/// Save with a user-supplied name to an explicit directory (useful for tests).
+/// Saves the game to `dir` under a sanitized version of `name`.
+///
+/// This lower-level variant is exposed for tests that need a specific directory.
+///
+/// # Errors
+/// Returns an error string if the directory cannot be created or the file cannot be written.
 pub fn save_game_with_name_in_dir(game: &GameState, name: &str, dir: &Path) -> Result<String, String> {
     fs::create_dir_all(dir).map_err(|e| format!("Cannot create save dir: {}", e))?;
 
@@ -71,6 +87,11 @@ fn write_save_file(game: &GameState, saved_at_secs: u64, path: &Path) -> Result<
 
 // ── Load ──────────────────────────────────────────────────────────────────
 
+/// Reads and deserializes a save file, returning the stored [`GameState`].
+///
+/// # Errors
+/// Returns `"Read error: ..."` if the file cannot be read, or `"Parse error: ..."` if the JSON
+/// cannot be deserialized into a [`SaveFile`].
 pub fn load_game(path: &Path) -> Result<GameState, String> {
     let content = fs::read_to_string(path)
         .map_err(|e| format!("Read error: {}", e))?;
@@ -81,12 +102,14 @@ pub fn load_game(path: &Path) -> Result<GameState, String> {
 
 // ── List ──────────────────────────────────────────────────────────────────
 
-/// List saves from the default directory, newest first.
+/// Lists all save files from the default directory, sorted newest-first.
 pub fn list_saves() -> Vec<SaveSlot> {
     list_saves_in_dir(&saves_dir())
 }
 
-/// List saves from an explicit directory (useful for tests), newest first.
+/// Lists all `.json` save files from `dir`, sorted newest-first by modification time.
+///
+/// Returns an empty `Vec` if the directory does not exist or cannot be read.
 pub fn list_saves_in_dir(dir: &Path) -> Vec<SaveSlot> {
     let Ok(entries) = fs::read_dir(dir) else {
         return Vec::new();
@@ -165,19 +188,8 @@ fn sanitize_filename(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::{
-        AtBatResult, BatterGameStats, BatterInfo, GameState, Half, LineupSlot, PitcherInfo, Team,
-    };
-
-    fn make_team(name: &str) -> Team {
-        let lineup = (1..=9)
-            .map(|i| LineupSlot {
-                info: BatterInfo { name: format!("Player {}", i), season_avg: 0.250 },
-                stats: BatterGameStats::default(),
-            })
-            .collect();
-        Team::new(name.to_string(), lineup, PitcherInfo { name: "Starter".into() })
-    }
+    use crate::game::{AtBatResult, GameState, Half};
+    use crate::test_helpers::helpers::make_team;
 
     fn make_game() -> GameState {
         GameState::new(make_team("Visitors"), make_team("Homers"))

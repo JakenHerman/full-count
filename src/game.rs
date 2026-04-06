@@ -2,14 +2,18 @@ use serde::{Deserialize, Serialize};
 
 // ── Half-inning direction ──────────────────────────────────────────────────
 
+/// Which half of an inning is currently being played.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Half {
+    /// Visiting team bats.
     Top,
+    /// Home team bats.
     Bottom,
 }
 
 // ── At-bat result ──────────────────────────────────────────────────────────
 
+/// The outcome of a completed at-bat, used to update stats and advance baserunners.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AtBatResult {
     Single,
@@ -20,15 +24,21 @@ pub enum AtBatResult {
     StrikeoutLooking,
     Walk,
     HitByPitch,
-    Groundout(Vec<u8>),     // fielder sequence e.g. [6,3] or [5,4,3]
-    DoublePlay(Vec<u8>),    // e.g. [6,4,3] — records 2 outs
-    Flyout(u8),             // single fielder position
-    Error(u8),              // fielder who made the error
+    /// Fielder sequence, e.g. `[6, 3]` or `[5, 4, 3]`.
+    Groundout(Vec<u8>),
+    /// Fielder sequence that records two outs, e.g. `[6, 4, 3]`.
+    DoublePlay(Vec<u8>),
+    /// The position number of the fielder who caught the ball.
+    Flyout(u8),
+    /// The position number of the fielder who committed the error.
+    Error(u8),
     FieldersChoice,
+    /// The position number of the outfielder who caught the fly.
     SacrificeFly(u8),
 }
 
 impl AtBatResult {
+    /// Returns `true` for the four hit types: single, double, triple, and home run.
     pub fn is_hit(&self) -> bool {
         matches!(
             self,
@@ -36,6 +46,9 @@ impl AtBatResult {
         )
     }
 
+    /// Returns the number of outs this result records (0, 1, or 2).
+    ///
+    /// [`AtBatResult::DoublePlay`] is the only result that returns 2.
     pub fn records_out(&self) -> u8 {
         match self {
             AtBatResult::StrikeoutSwinging
@@ -49,6 +62,9 @@ impl AtBatResult {
         }
     }
 
+    /// Returns `true` if this result counts as an official at-bat.
+    ///
+    /// Walks, hit-by-pitches, and sacrifice flies do **not** count.
     pub fn counts_as_at_bat(&self) -> bool {
         !matches!(
             self,
@@ -56,6 +72,7 @@ impl AtBatResult {
         )
     }
 
+    /// Returns the standard scorecard abbreviation for this result (e.g. `"1B"`, `"K"`, `"6-3"`).
     pub fn display(&self) -> String {
         match self {
             AtBatResult::Single => "1B".into(),
@@ -82,6 +99,7 @@ fn seq_display(seq: &[u8]) -> String {
 
 // ── Game stats ─────────────────────────────────────────────────────────────
 
+/// Cumulative hitting statistics for a single batter in one game.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct BatterGameStats {
     pub at_bats: u8,
@@ -93,6 +111,7 @@ pub struct BatterGameStats {
     pub hit_by_pitch: u8,
 }
 
+/// Cumulative pitching statistics for a single pitcher appearance in one game.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PitcherGameStats {
     pub outs_recorded: u16,
@@ -106,6 +125,9 @@ pub struct PitcherGameStats {
 }
 
 impl PitcherGameStats {
+    /// Formats innings pitched in standard baseball notation (e.g. `"6.2"` for 20 outs).
+    ///
+    /// The digit after the decimal is the number of additional outs beyond complete innings (0, 1, or 2).
     pub fn ip_display(&self) -> String {
         format!("{}.{}", self.outs_recorded / 3, self.outs_recorded % 3)
     }
@@ -113,13 +135,18 @@ impl PitcherGameStats {
 
 // ── Roster types ───────────────────────────────────────────────────────────
 
+/// Static identifying information for a batter.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BatterInfo {
     pub name: String,
+    /// Season batting average in the range `[0.0, 1.0]`; `0.0` means not entered.
     pub season_avg: f32,
 }
 
 impl BatterInfo {
+    /// Formats the season average as a three-digit string (e.g. `".315"`).
+    ///
+    /// Returns `".---"` when `season_avg` is zero or negative (i.e. not entered).
     pub fn avg_display(&self) -> String {
         if self.season_avg <= 0.0 {
             ".---".to_string()
@@ -129,17 +156,20 @@ impl BatterInfo {
     }
 }
 
+/// Static identifying information for a pitcher.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PitcherInfo {
     pub name: String,
 }
 
+/// One slot in the batting order, pairing player identity with in-game stats.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LineupSlot {
     pub info: BatterInfo,
     pub stats: BatterGameStats,
 }
 
+/// The win/loss/save decision assigned to a pitcher at the end of the game.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Decision {
     Win,
@@ -148,6 +178,7 @@ pub enum Decision {
 }
 
 impl Decision {
+    /// Returns the single-letter abbreviation: `"W"`, `"L"`, or `"S"`.
     pub fn label(&self) -> &'static str {
         match self {
             Decision::Win => "W",
@@ -157,6 +188,7 @@ impl Decision {
     }
 }
 
+/// A pitcher's appearance in a game, including stats and optional decision.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PitcherAppearance {
     pub info: PitcherInfo,
@@ -167,10 +199,14 @@ pub struct PitcherAppearance {
 
 // ── Bases ──────────────────────────────────────────────────────────────────
 
+/// The current baserunner state, storing the batting-order index of any occupied base.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Bases {
-    pub first: Option<usize>,   // lineup index of runner on base
+    /// Lineup index of the runner on first, or `None` if empty.
+    pub first: Option<usize>,
+    /// Lineup index of the runner on second, or `None` if empty.
     pub second: Option<usize>,
+    /// Lineup index of the runner on third, or `None` if empty.
     pub third: Option<usize>,
 }
 
@@ -184,8 +220,10 @@ impl Bases {
         *self = Self::default();
     }
 
-    /// Advance all runners by `bases` bases (1=single, 2=double, 3=triple, 4=HR).
-    /// Returns (runs_scored, lineup_indices_who_scored).
+    /// Advances all runners and the batter by `bases` bases (1=single, 2=double, 3=triple, 4=HR).
+    ///
+    /// Returns `(runs_scored, lineup_indices_who_scored)`. Runners that reach or pass home
+    /// are removed from the bases and included in the returned scorer list.
     pub fn advance_all(&mut self, bases: u8, batter_idx: usize) -> (u8, Vec<usize>) {
         let mut runs = 0u8;
         let mut scorers = Vec::new();
@@ -227,7 +265,11 @@ impl Bases {
         (runs, scorers)
     }
 
-    /// Force-advance for walk/HBP: only advance runners who are forced.
+    /// Force-advances runners for a walk or hit-by-pitch — only moves runners who are forced.
+    ///
+    /// The batter always takes first base. A runner already on first is pushed to second,
+    /// and so on. If the bases are loaded, the runner on third scores.
+    /// Returns `(runs_scored, lineup_indices_who_scored)`.
     pub fn force_advance(&mut self, batter_idx: usize) -> (u8, Vec<usize>) {
         let mut runs = 0u8;
         let mut scorers = Vec::new();
@@ -247,9 +289,11 @@ impl Bases {
         (runs, scorers)
     }
 
-    /// Move a specific runner from one base to another.
-    /// from/to: 1=1st, 2=2nd, 3=3rd, 4=home (scores).
-    /// Returns true if the runner scored.
+    /// Moves a runner from one base to another manually.
+    ///
+    /// `from` and `to` are 1-indexed base numbers; use `4` for home plate (scores).
+    /// Returns `true` if the runner scored. Returns `false` if there is no runner
+    /// on `from`, or if `from`/`to` are out of range.
     pub fn move_runner(&mut self, from: u8, to: u8) -> bool {
         let runner = match from {
             1 => self.first.take(),
@@ -273,6 +317,7 @@ impl Bases {
 
 // ── Count ──────────────────────────────────────────────────────────────────
 
+/// The current ball-strike count for the batter at the plate.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Count {
     pub balls: u8,
@@ -280,25 +325,28 @@ pub struct Count {
 }
 
 impl Count {
-    /// Returns true if this ball caused a walk.
+    /// Increments the ball count. Returns `true` if the fourth ball causes a walk.
     pub fn add_ball(&mut self) -> bool {
         self.balls += 1;
         self.balls >= 4
     }
 
-    /// Returns true if this strike caused a strikeout.
+    /// Increments the strike count. Returns `true` if the third strike causes a strikeout.
     pub fn add_strike(&mut self) -> bool {
         self.strikes += 1;
         self.strikes >= 3
     }
 
-    /// Foul: increment strikes only if fewer than 2.
+    /// Records a foul ball, incrementing strikes only when below two.
+    ///
+    /// A foul with two strikes leaves the count unchanged (no strikeout on a foul).
     pub fn add_foul(&mut self) {
         if self.strikes < 2 {
             self.strikes += 1;
         }
     }
 
+    /// Resets the count to 0-0.
     pub fn reset(&mut self) {
         *self = Self::default();
     }
@@ -306,6 +354,7 @@ impl Count {
 
 // ── Team ───────────────────────────────────────────────────────────────────
 
+/// A team's roster, pitching staff, and batting-order position for one game.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Team {
     pub name: String,
@@ -316,6 +365,7 @@ pub struct Team {
 }
 
 impl Team {
+    /// Creates a team with a 9-player lineup and a single starting pitcher.
     pub fn new(name: String, lineup: Vec<LineupSlot>, starter: PitcherInfo) -> Self {
         Team {
             name,
@@ -347,10 +397,12 @@ impl Team {
         &mut self.lineup[self.batting_order_pos]
     }
 
+    /// Moves to the next batter, wrapping from position 8 back to 0.
     pub fn advance_batter(&mut self) {
         self.batting_order_pos = (self.batting_order_pos + 1) % 9;
     }
 
+    /// Returns the total number of hits recorded across all lineup slots.
     pub fn total_hits(&self) -> u8 {
         self.lineup.iter().map(|s| s.stats.hits).sum()
     }
@@ -358,6 +410,7 @@ impl Team {
 
 // ── Inning score ───────────────────────────────────────────────────────────
 
+/// Runs scored by each team in a single inning.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct InningScore {
     pub away_runs: u8,
@@ -366,6 +419,7 @@ pub struct InningScore {
 
 // ── Play log ───────────────────────────────────────────────────────────────
 
+/// A single entry in the play-by-play log.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PlayLogEntry {
     pub inning: u8,
@@ -376,6 +430,7 @@ pub struct PlayLogEntry {
 }
 
 impl PlayLogEntry {
+    /// Formats the entry for display, e.g. `"T3: Smith — 1B (1 RBI)"`.
     pub fn display(&self) -> String {
         let h = match self.half {
             Half::Top => "T",
@@ -390,6 +445,7 @@ impl PlayLogEntry {
 
 // ── Pitch events and outcomes ──────────────────────────────────────────────
 
+/// A single pitch classification used to update the count.
 #[derive(Clone, Debug)]
 pub enum PitchEvent {
     Ball,
@@ -397,22 +453,31 @@ pub enum PitchEvent {
     Foul,
 }
 
+/// The result of processing a [`PitchEvent`] against the current count.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PitchOutcome {
+    /// Count changed but the at-bat continues.
     CountUpdated,
+    /// Four balls — a walk should be recorded.
     WalkForced,
+    /// Three strikes — a strikeout should be recorded.
     StrikeoutForced,
 }
 
+/// The result of completing an at-bat, indicating whether the half-inning ended.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum InningOutcome {
+    /// Fewer than three outs; batting continues.
     Continue,
+    /// Third out recorded; half-inning is over.
     ThreeOuts,
+    /// Walk-off or regulation end; the game is over.
     GameOver,
 }
 
 // ── Error tracking ─────────────────────────────────────────────────────────
 
+/// Fielding errors charged to each team in the current game.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct GameErrors {
     pub away: u8,
@@ -421,6 +486,7 @@ pub struct GameErrors {
 
 // ── GameState ──────────────────────────────────────────────────────────────
 
+/// The complete state of an in-progress or finished baseball game.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GameState {
     pub away: Team,
@@ -437,6 +503,7 @@ pub struct GameState {
 }
 
 impl GameState {
+    /// Creates a new game starting at the top of the first inning with a clean count and empty bases.
     pub fn new(away: Team, home: Team) -> Self {
         GameState {
             away,
@@ -455,37 +522,49 @@ impl GameState {
 
     // ── Team accessors ─────────────────────────────────────────────────────
 
+    /// Returns the team currently at bat (away in the top half, home in the bottom).
     pub fn batting_team(&self) -> &Team {
         if self.half == Half::Top { &self.away } else { &self.home }
     }
 
+    /// Returns a mutable reference to the team currently at bat.
     pub fn batting_team_mut(&mut self) -> &mut Team {
         if self.half == Half::Top { &mut self.away } else { &mut self.home }
     }
 
+    /// Returns the team currently in the field.
     pub fn fielding_team(&self) -> &Team {
         if self.half == Half::Top { &self.home } else { &self.away }
     }
 
+    /// Returns a mutable reference to the team currently in the field.
     pub fn fielding_team_mut(&mut self) -> &mut Team {
         if self.half == Half::Top { &mut self.home } else { &mut self.away }
     }
 
     // ── Score totals ───────────────────────────────────────────────────────
 
+    /// Returns the total runs scored by the away team across all innings.
     pub fn away_total_runs(&self) -> u8 {
         self.inning_scores.iter().map(|s| s.away_runs).sum()
     }
 
+    /// Returns the total runs scored by the home team across all innings.
     pub fn home_total_runs(&self) -> u8 {
         self.inning_scores.iter().map(|s| s.home_runs).sum()
     }
 
+    /// Returns the total hits recorded by the away team's lineup.
     pub fn away_total_hits(&self) -> u8 { self.away.total_hits() }
+    /// Returns the total hits recorded by the home team's lineup.
     pub fn home_total_hits(&self) -> u8 { self.home.total_hits() }
 
     // ── Pitch processing ───────────────────────────────────────────────────
 
+    /// Increments the fielding pitcher's pitch count and updates the count for the given event.
+    ///
+    /// Returns [`PitchOutcome::WalkForced`] on the fourth ball, [`PitchOutcome::StrikeoutForced`]
+    /// on the third strike, or [`PitchOutcome::CountUpdated`] otherwise.
     pub fn apply_pitch(&mut self, event: PitchEvent) -> PitchOutcome {
         self.fielding_team_mut().current_pitcher_mut().stats.pitch_count += 1;
         match event {
@@ -504,6 +583,15 @@ impl GameState {
 
     // ── At-bat resolution ──────────────────────────────────────────────────
 
+    /// Resolves a completed at-bat: updates all batter and pitcher stats, advances baserunners,
+    /// records runs and errors, logs the play, resets the count, and checks for end-of-half-inning.
+    ///
+    /// `rbi` is the number of runs driven in by this at-bat (caller supplies this since it
+    /// depends on baserunner positions at the time of the play).
+    ///
+    /// Returns [`InningOutcome::ThreeOuts`] when the side is retired,
+    /// [`InningOutcome::GameOver`] on a walk-off or regulation end, or
+    /// [`InningOutcome::Continue`] otherwise.
     pub fn apply_at_bat_result(&mut self, result: AtBatResult, rbi: u8) -> InningOutcome {
         // Snapshot values before mutable borrows
         let batter_idx = self.batting_team().batting_order_pos;
@@ -659,6 +747,7 @@ impl GameState {
 
     // ── Pitcher change ─────────────────────────────────────────────────────
 
+    /// Adds a new pitcher to the fielding team's staff and makes them the current pitcher.
     pub fn change_pitcher(&mut self, new_pitcher: PitcherInfo) {
         let entered_inning = self.inning;
         let fielding = self.fielding_team_mut();
@@ -673,8 +762,9 @@ impl GameState {
 
     // ── Manual runner advance ──────────────────────────────────────────────
 
-    /// Move a runner from `from` base to `to` base (1-3, or 4=home/scores).
-    /// Returns true if the runner scored (caller should add a run to the score).
+    /// Manually moves a runner between bases and updates the inning score if they score.
+    ///
+    /// `from`/`to` are 1-indexed; use `4` for home plate. Returns `true` if the runner scored.
     pub fn advance_runner(&mut self, from: u8, to: u8) -> bool {
         let scored = self.bases.move_runner(from, to);
         if scored {
@@ -691,6 +781,11 @@ impl GameState {
 
     // ── Decision assignment (call at game end) ─────────────────────────────
 
+    /// Assigns win, loss, and save decisions to pitchers based on the final score.
+    ///
+    /// Should be called exactly once when `game_over` is set to `true`. If the winning
+    /// team had two or more pitchers, the second-to-last gets the win and the last gets
+    /// the save.
     pub fn assign_decisions(&mut self) {
         let home_won = self.home_total_runs() > self.away_total_runs();
 
@@ -725,20 +820,7 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn make_team(name: &str) -> Team {
-        let lineup = (1..=9)
-            .map(|i| LineupSlot {
-                info: BatterInfo { name: format!("Player {}", i), season_avg: 0.250 },
-                stats: BatterGameStats::default(),
-            })
-            .collect();
-        Team::new(name.to_string(), lineup, PitcherInfo { name: "Starter".into() })
-    }
-
-    fn make_game() -> GameState {
-        GameState::new(make_team("Away"), make_team("Home"))
-    }
+    use crate::test_helpers::helpers::make_game;
 
     #[test]
     fn test_ip_display() {
@@ -848,5 +930,524 @@ mod tests {
         game.apply_at_bat_result(AtBatResult::Single, 0);
         assert_eq!(game.count.balls, 0);
         assert_eq!(game.count.strikes, 0);
+    }
+
+    // ── Count ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_count_foul_no_third_strike() {
+        let mut c = Count { balls: 0, strikes: 2 };
+        c.add_foul();
+        assert_eq!(c.strikes, 2);
+    }
+
+    #[test]
+    fn test_count_foul_advances_below_two() {
+        let mut c = Count::default();
+        c.add_foul();
+        assert_eq!(c.strikes, 1);
+        c.add_foul();
+        assert_eq!(c.strikes, 2);
+        // third foul should not advance
+        c.add_foul();
+        assert_eq!(c.strikes, 2);
+    }
+
+    #[test]
+    fn test_count_ball_walk_at_four() {
+        let mut c = Count { balls: 3, strikes: 0 };
+        assert!(c.add_ball());
+        assert_eq!(c.balls, 4);
+    }
+
+    #[test]
+    fn test_count_ball_no_walk_below_four() {
+        let mut c = Count::default();
+        assert!(!c.add_ball());
+        assert!(!c.add_ball());
+        assert!(!c.add_ball());
+    }
+
+    #[test]
+    fn test_count_strike_so_at_three() {
+        let mut c = Count { balls: 0, strikes: 2 };
+        assert!(c.add_strike());
+    }
+
+    #[test]
+    fn test_count_strike_no_so_below_three() {
+        let mut c = Count::default();
+        assert!(!c.add_strike());
+        assert!(!c.add_strike());
+    }
+
+    #[test]
+    fn test_count_reset_clears() {
+        let mut c = Count { balls: 3, strikes: 2 };
+        c.reset();
+        assert_eq!(c.balls, 0);
+        assert_eq!(c.strikes, 0);
+    }
+
+    // ── AtBatResult predicates ─────────────────────────────────────────────
+
+    #[test]
+    fn test_at_bat_result_is_hit_variants() {
+        assert!(AtBatResult::Single.is_hit());
+        assert!(AtBatResult::Double.is_hit());
+        assert!(AtBatResult::Triple.is_hit());
+        assert!(AtBatResult::HomeRun.is_hit());
+    }
+
+    #[test]
+    fn test_at_bat_result_non_hits() {
+        assert!(!AtBatResult::Walk.is_hit());
+        assert!(!AtBatResult::StrikeoutSwinging.is_hit());
+        assert!(!AtBatResult::Groundout(vec![6, 3]).is_hit());
+        assert!(!AtBatResult::Error(6).is_hit());
+        assert!(!AtBatResult::FieldersChoice.is_hit());
+    }
+
+    #[test]
+    fn test_records_out_variants() {
+        assert_eq!(AtBatResult::Single.records_out(), 0);
+        assert_eq!(AtBatResult::Walk.records_out(), 0);
+        assert_eq!(AtBatResult::StrikeoutSwinging.records_out(), 1);
+        assert_eq!(AtBatResult::StrikeoutLooking.records_out(), 1);
+        assert_eq!(AtBatResult::Groundout(vec![6, 3]).records_out(), 1);
+        assert_eq!(AtBatResult::Flyout(8).records_out(), 1);
+        assert_eq!(AtBatResult::FieldersChoice.records_out(), 1);
+        assert_eq!(AtBatResult::SacrificeFly(9).records_out(), 1);
+        assert_eq!(AtBatResult::DoublePlay(vec![6, 4, 3]).records_out(), 2);
+    }
+
+    #[test]
+    fn test_counts_as_at_bat_variants() {
+        assert!(AtBatResult::Single.counts_as_at_bat());
+        assert!(AtBatResult::StrikeoutSwinging.counts_as_at_bat());
+        assert!(AtBatResult::Groundout(vec![6, 3]).counts_as_at_bat());
+        assert!(!AtBatResult::Walk.counts_as_at_bat());
+        assert!(!AtBatResult::HitByPitch.counts_as_at_bat());
+        assert!(!AtBatResult::SacrificeFly(9).counts_as_at_bat());
+    }
+
+    // ── AtBatResult::display ───────────────────────────────────────────────
+
+    #[test]
+    fn test_at_bat_result_display_all_variants() {
+        assert_eq!(AtBatResult::Single.display(), "1B");
+        assert_eq!(AtBatResult::Double.display(), "2B");
+        assert_eq!(AtBatResult::Triple.display(), "3B");
+        assert_eq!(AtBatResult::HomeRun.display(), "HR");
+        assert_eq!(AtBatResult::StrikeoutSwinging.display(), "K");
+        assert_eq!(AtBatResult::StrikeoutLooking.display(), "Kl");
+        assert_eq!(AtBatResult::Walk.display(), "BB");
+        assert_eq!(AtBatResult::HitByPitch.display(), "HBP");
+        assert_eq!(AtBatResult::Groundout(vec![6, 3]).display(), "6-3");
+        assert_eq!(AtBatResult::DoublePlay(vec![6, 4, 3]).display(), "6-4-3 DP");
+        assert_eq!(AtBatResult::Flyout(8).display(), "F8");
+        assert_eq!(AtBatResult::Error(6).display(), "E6");
+        assert_eq!(AtBatResult::FieldersChoice.display(), "FC");
+        assert_eq!(AtBatResult::SacrificeFly(9).display(), "SF9");
+    }
+
+    // ── BatterInfo / PitcherGameStats display ──────────────────────────────
+
+    #[test]
+    fn test_avg_display_zero() {
+        let b = BatterInfo { name: "X".into(), season_avg: 0.0 };
+        assert_eq!(b.avg_display(), ".---");
+    }
+
+    #[test]
+    fn test_avg_display_negative() {
+        let b = BatterInfo { name: "X".into(), season_avg: -0.1 };
+        assert_eq!(b.avg_display(), ".---");
+    }
+
+    #[test]
+    fn test_avg_display_normal() {
+        let b = BatterInfo { name: "X".into(), season_avg: 0.315 };
+        assert_eq!(b.avg_display(), ".315");
+    }
+
+    #[test]
+    fn test_decision_label() {
+        assert_eq!(Decision::Win.label(), "W");
+        assert_eq!(Decision::Loss.label(), "L");
+        assert_eq!(Decision::Save.label(), "S");
+    }
+
+    #[test]
+    fn test_play_log_entry_display_top() {
+        let entry = PlayLogEntry {
+            inning: 3,
+            half: Half::Top,
+            batter_name: "Smith".into(),
+            description: "1B".into(),
+            rbi: 1,
+        };
+        let s = entry.display();
+        assert!(s.contains("T3"));
+        assert!(s.contains("Smith"));
+        assert!(s.contains("1B"));
+        assert!(s.contains("1 RBI"));
+    }
+
+    #[test]
+    fn test_play_log_entry_display_bottom() {
+        let entry = PlayLogEntry {
+            inning: 7,
+            half: Half::Bottom,
+            batter_name: "Jones".into(),
+            description: "HR".into(),
+            rbi: 2,
+        };
+        let s = entry.display();
+        assert!(s.starts_with("B7"));
+    }
+
+    // ── Bases::advance_all ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_advance_all_single_no_runners() {
+        let mut bases = Bases::default();
+        let (runs, scorers) = bases.advance_all(1, 0);
+        assert_eq!(runs, 0);
+        assert!(scorers.is_empty());
+        assert_eq!(bases.first, Some(0));
+    }
+
+    #[test]
+    fn test_advance_all_double_runner_on_first() {
+        let mut bases = Bases { first: Some(0), second: None, third: None };
+        let (runs, _) = bases.advance_all(2, 1);
+        assert_eq!(runs, 0);
+        assert_eq!(bases.second, Some(1)); // batter on 2nd
+        assert_eq!(bases.third, Some(0)); // old runner on 3rd
+        assert!(bases.first.is_none());
+    }
+
+    #[test]
+    fn test_advance_all_triple_runner_on_second() {
+        let mut bases = Bases { first: None, second: Some(0), third: None };
+        let (runs, scorers) = bases.advance_all(3, 1);
+        assert_eq!(runs, 1);
+        assert_eq!(scorers, vec![0]);
+        assert_eq!(bases.third, Some(1)); // batter on 3rd
+    }
+
+    #[test]
+    fn test_advance_all_hr_solo() {
+        let mut bases = Bases::default();
+        let (runs, scorers) = bases.advance_all(4, 0);
+        assert_eq!(runs, 1);
+        assert_eq!(scorers, vec![0]);
+        assert!(bases.first.is_none());
+    }
+
+    // ── Bases::force_advance ───────────────────────────────────────────────
+
+    #[test]
+    fn test_force_advance_runner_on_first_only() {
+        let mut bases = Bases { first: Some(0), second: None, third: None };
+        let (runs, scorers) = bases.force_advance(1);
+        assert_eq!(runs, 0);
+        assert!(scorers.is_empty());
+        assert_eq!(bases.first, Some(1));
+        assert_eq!(bases.second, Some(0));
+        assert!(bases.third.is_none());
+    }
+
+    #[test]
+    fn test_force_advance_runners_on_first_second() {
+        let mut bases = Bases { first: Some(0), second: Some(1), third: None };
+        let (runs, scorers) = bases.force_advance(2);
+        assert_eq!(runs, 0);
+        assert!(scorers.is_empty());
+        assert_eq!(bases.first, Some(2));
+        assert_eq!(bases.second, Some(0));
+        assert_eq!(bases.third, Some(1));
+    }
+
+    // ── Bases::move_runner ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_move_runner_1_to_2() {
+        let mut bases = Bases { first: Some(0), second: None, third: None };
+        assert!(!bases.move_runner(1, 2));
+        assert!(bases.first.is_none());
+        assert_eq!(bases.second, Some(0));
+    }
+
+    #[test]
+    fn test_move_runner_3_to_home() {
+        let mut bases = Bases { first: None, second: None, third: Some(0) };
+        assert!(bases.move_runner(3, 4));
+        assert!(bases.third.is_none());
+    }
+
+    #[test]
+    fn test_move_runner_from_empty_base() {
+        let mut bases = Bases::default();
+        assert!(!bases.move_runner(1, 2));
+    }
+
+    // ── GameState at-bat resolution ────────────────────────────────────────
+
+    #[test]
+    fn test_walk_empty_bases_no_run() {
+        let mut game = make_game();
+        let io = game.apply_at_bat_result(AtBatResult::Walk, 0);
+        assert_eq!(game.away_total_runs(), 0);
+        assert_eq!(game.bases.first, Some(0));
+        assert!(matches!(io, InningOutcome::Continue));
+    }
+
+    #[test]
+    fn test_walk_bases_loaded_run_scores() {
+        let mut game = make_game();
+        game.bases = Bases { first: Some(0), second: Some(1), third: Some(2) };
+        game.apply_at_bat_result(AtBatResult::Walk, 1);
+        assert_eq!(game.away_total_runs(), 1);
+    }
+
+    #[test]
+    fn test_hbp_empty_bases() {
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::HitByPitch, 0);
+        assert_eq!(game.bases.first, Some(0));
+        assert_eq!(game.away.current_pitcher().stats.hit_batsmen, 0);
+        assert_eq!(game.home.current_pitcher().stats.hit_batsmen, 1);
+    }
+
+    #[test]
+    fn test_single_runner_scores_from_third() {
+        let mut game = make_game();
+        game.bases.third = Some(2);
+        game.apply_at_bat_result(AtBatResult::Single, 1);
+        assert_eq!(game.away_total_runs(), 1);
+    }
+
+    #[test]
+    fn test_error_batter_reaches_no_advance() {
+        let mut game = make_game();
+        game.bases.second = Some(1);
+        game.apply_at_bat_result(AtBatResult::Error(6), 0);
+        // batter on first, runner on second stays
+        assert_eq!(game.bases.first, Some(0));
+        assert_eq!(game.bases.second, Some(1));
+        assert_eq!(game.errors.home, 1); // top half → home team commits error
+    }
+
+    #[test]
+    fn test_fielders_choice_lead_runner_out() {
+        let mut game = make_game();
+        // Batter 0 singles, runner 0 is now on first
+        game.apply_at_bat_result(AtBatResult::Single, 0);
+        assert_eq!(game.bases.first, Some(0));
+        // Batter 1 hits FC: runner 0 is retired, batter 1 (index 1) reaches first
+        game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
+        assert_eq!(game.bases.first, Some(1));
+        assert!(game.bases.second.is_none());
+    }
+
+    #[test]
+    fn test_sac_fly_runner_on_third_scores() {
+        let mut game = make_game();
+        game.bases.third = Some(2);
+        let io = game.apply_at_bat_result(AtBatResult::SacrificeFly(9), 1);
+        assert_eq!(game.away_total_runs(), 1);
+        assert!(game.bases.third.is_none());
+        assert!(matches!(io, InningOutcome::Continue));
+    }
+
+    #[test]
+    fn test_sac_fly_no_runner_on_third() {
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::SacrificeFly(9), 0);
+        assert_eq!(game.away_total_runs(), 0);
+        assert_eq!(game.outs, 1);
+    }
+
+    #[test]
+    fn test_groundout_no_base_change() {
+        let mut game = make_game();
+        game.bases.second = Some(1);
+        game.apply_at_bat_result(AtBatResult::Groundout(vec![6, 3]), 0);
+        assert_eq!(game.bases.second, Some(1));
+        assert_eq!(game.outs, 1);
+    }
+
+    // ── GameState: game flow ───────────────────────────────────────────────
+
+    #[test]
+    fn test_end_half_inning_top_to_bottom() {
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        assert_eq!(game.half, Half::Bottom);
+        assert_eq!(game.inning, 1);
+        assert_eq!(game.outs, 0);
+    }
+
+    #[test]
+    fn test_end_half_inning_bottom_advances_inning() {
+        let mut game = make_game();
+        // top half: 3 outs
+        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        // bottom half: 3 outs
+        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        assert_eq!(game.inning, 2);
+        assert_eq!(game.half, Half::Top);
+    }
+
+    #[test]
+    fn test_game_not_over_before_ninth() {
+        let mut game = make_game();
+        // Play through 8 full innings (3 outs per half)
+        for _ in 0..16 {
+            for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        }
+        assert_eq!(game.inning, 9);
+        assert!(!game.game_over);
+    }
+
+    #[test]
+    fn test_game_over_after_bottom_ninth_home_wins() {
+        // The game ends at the 3-out boundary when home leads after the bottom half of inning 9+.
+        let mut game = make_game();
+        // Play 8 full scoreless innings
+        for _ in 0..16 {
+            for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        }
+        assert_eq!(game.inning, 9);
+        assert_eq!(game.half, Half::Top);
+        // Top 9: away scores 0, 3 Ks
+        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        // Bottom 9: home hits a HR (1 run), then three outs → game ends
+        game.apply_at_bat_result(AtBatResult::HomeRun, 1);
+        for _ in 0..2 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        let outcome = game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        assert!(matches!(outcome, InningOutcome::GameOver));
+        assert!(game.game_over);
+        assert_eq!(game.home_total_runs(), 1);
+        assert_eq!(game.away_total_runs(), 0);
+    }
+
+    #[test]
+    fn test_bases_cleared_after_half_inning() {
+        let mut game = make_game();
+        game.bases.first = Some(0);
+        game.bases.second = Some(1);
+        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        assert!(game.bases.is_empty());
+    }
+
+    // ── GameState: pitchers and stats ──────────────────────────────────────
+
+    #[test]
+    fn test_pitch_count_increments() {
+        let mut game = make_game();
+        game.apply_pitch(PitchEvent::Ball);
+        game.apply_pitch(PitchEvent::Strike);
+        game.apply_pitch(PitchEvent::Foul);
+        assert_eq!(game.home.current_pitcher().stats.pitch_count, 3);
+    }
+
+    #[test]
+    fn test_pitcher_outs_recorded() {
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        game.apply_at_bat_result(AtBatResult::Groundout(vec![6, 3]), 0);
+        assert_eq!(game.home.current_pitcher().stats.outs_recorded, 2);
+    }
+
+    #[test]
+    fn test_batter_stats_accumulate() {
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::Single, 1);
+        let batter = &game.away.lineup[0].stats;
+        assert_eq!(batter.at_bats, 1);
+        assert_eq!(batter.hits, 1);
+        assert_eq!(batter.rbi, 1);
+    }
+
+    #[test]
+    fn test_batter_walk_not_counted_as_ab() {
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::Walk, 0);
+        assert_eq!(game.away.lineup[0].stats.at_bats, 0);
+        assert_eq!(game.away.lineup[0].stats.walks, 1);
+    }
+
+    #[test]
+    fn test_change_pitcher_sets_current() {
+        let mut game = make_game();
+        game.change_pitcher(PitcherInfo { name: "Reliever".into() });
+        assert_eq!(game.home.current_pitcher().info.name, "Reliever");
+        assert_eq!(game.home.pitchers.len(), 2);
+        assert_eq!(game.home.current_pitcher().entered_inning, 1);
+    }
+
+    #[test]
+    fn test_assign_decisions_home_wins_solo_pitcher() {
+        let mut game = make_game();
+        // Home scores in bottom 1st
+        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        game.apply_at_bat_result(AtBatResult::HomeRun, 1);
+        game.assign_decisions();
+        assert_eq!(game.home.pitchers[0].decision, Some(Decision::Win));
+        assert_eq!(game.away.pitchers[0].decision, Some(Decision::Loss));
+    }
+
+    #[test]
+    fn test_assign_decisions_away_wins() {
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::HomeRun, 1);
+        game.assign_decisions();
+        assert_eq!(game.away.pitchers[0].decision, Some(Decision::Win));
+        assert_eq!(game.home.pitchers[0].decision, Some(Decision::Loss));
+    }
+
+    #[test]
+    fn test_assign_decisions_with_save() {
+        let mut game = make_game();
+        // Away scores in top of 1st
+        game.apply_at_bat_result(AtBatResult::HomeRun, 1);
+        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        // Now bottom of 1st — away is the fielding team; add a reliever to away
+        assert_eq!(game.half, Half::Bottom);
+        game.change_pitcher(PitcherInfo { name: "Closer".into() });
+        game.assign_decisions();
+        // Away won with 2 pitchers: first gets Win, second gets Save
+        assert_eq!(game.away.pitchers[0].decision, Some(Decision::Win));
+        assert_eq!(game.away.pitchers[1].decision, Some(Decision::Save));
+        assert_eq!(game.home.pitchers[0].decision, Some(Decision::Loss));
+    }
+
+    // ── Inning scoring ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_inning_scores_tracked_per_inning() {
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::HomeRun, 1);
+        // Move to inning 2
+        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        game.apply_at_bat_result(AtBatResult::HomeRun, 1);
+        assert_eq!(game.inning_scores[0].away_runs, 1);
+        assert_eq!(game.inning_scores[1].away_runs, 1);
+    }
+
+    #[test]
+    fn test_manual_advance_runner_scores() {
+        let mut game = make_game();
+        game.bases.third = Some(0);
+        let scored = game.advance_runner(3, 4);
+        assert!(scored);
+        assert_eq!(game.away_total_runs(), 1);
+        assert!(game.bases.third.is_none());
     }
 }

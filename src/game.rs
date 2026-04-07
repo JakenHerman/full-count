@@ -135,7 +135,6 @@ impl TeamColor {
     }
 }
 
-
 // ── Half-inning direction ──────────────────────────────────────────────────
 
 /// Which half of an inning is currently being played.

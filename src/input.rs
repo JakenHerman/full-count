@@ -358,48 +358,48 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
                     }
                     KeyCode::Char(c @ '1'..='3') => {
                         let to = c as u8 - b'0';
+                        // Capture runner index before moving
+                        let runner_idx = app.game().ok().and_then(|g| match from {
+                            1 => g.bases.first,
+                            2 => g.bases.second,
+                            3 => g.bases.third,
+                            _ => None,
+                        });
                         app.push_undo();
                         let scored = app.game_mut().map_or(false, |g| g.advance_runner(from, to));
-                        if cfg!(feature = "advanced-stats") {
-                            app.input_mode = InputMode::RunnerAdvance(
-                                AdvanceStage::SelectReason { from, to, scored },
-                            );
-                            app.set_status(
-                                "Reason: [S]tolen base  [W]ild pitch  [P]assed ball  [B]alk  [O]ther",
-                            );
-                        } else {
-                            app.input_mode = InputMode::WaitingForResult;
-                            app.clear_status();
-                        }
+                        app.input_mode = InputMode::RunnerAdvance(
+                            AdvanceStage::SelectReason { from, to, scored, runner_idx },
+                        );
+                        app.set_status(
+                            "Reason: [S]tolen base  [C]aught stealing  [W]ild pitch  [P]assed ball  [B]alk  [O]ther",
+                        );
                     }
                     KeyCode::Char('h') | KeyCode::Char('H') => {
+                        let runner_idx = app.game().ok().and_then(|g| match from {
+                            1 => g.bases.first,
+                            2 => g.bases.second,
+                            3 => g.bases.third,
+                            _ => None,
+                        });
                         app.push_undo();
                         let scored = app.game_mut().map_or(false, |g| g.advance_runner(from, 4));
-                        if cfg!(feature = "advanced-stats") {
-                            app.input_mode = InputMode::RunnerAdvance(
-                                AdvanceStage::SelectReason { from, to: 4, scored },
-                            );
-                            app.set_status(
-                                "Reason: [S]tolen base  [W]ild pitch  [P]assed ball  [B]alk  [O]ther",
-                            );
-                        } else {
-                            app.input_mode = InputMode::WaitingForResult;
-                            app.clear_status();
-                        }
+                        app.input_mode = InputMode::RunnerAdvance(
+                            AdvanceStage::SelectReason { from, to: 4, scored, runner_idx },
+                        );
+                        app.set_status(
+                            "Reason: [S]tolen base  [C]aught stealing  [W]ild pitch  [P]assed ball  [B]alk  [O]ther",
+                        );
                     }
                     _ => {}
                 }
             }
-            AdvanceStage::SelectReason { from, to, scored } => {
-                let from = *from;
-                let _to = *to;
-                let _scored = *scored;
+            AdvanceStage::SelectReason { from: _, to, scored: _, runner_idx } => {
+                let to = *to;
+                let runner_idx = *runner_idx;
                 let reason = match key.code {
-                    KeyCode::Esc => {
-                        // Treat Esc as "Other" — the move already happened
-                        Some(AdvanceReason::Other)
-                    }
+                    KeyCode::Esc => Some(AdvanceReason::Other),
                     KeyCode::Char('s') | KeyCode::Char('S') => Some(AdvanceReason::StolenBase),
+                    KeyCode::Char('c') | KeyCode::Char('C') => Some(AdvanceReason::CaughtStealing),
                     KeyCode::Char('w') | KeyCode::Char('W') => Some(AdvanceReason::WildPitch),
                     KeyCode::Char('p') | KeyCode::Char('P') => Some(AdvanceReason::PassedBall),
                     KeyCode::Char('b') | KeyCode::Char('B') => Some(AdvanceReason::Balk),
@@ -407,7 +407,8 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
                     _ => None,
                 };
                 if let Some(reason) = reason {
-                    apply_advance_reason(app, &reason, from);
+                    let io = apply_advance_reason(app, &reason, to, runner_idx);
+                    handle_inning_outcome(app, io);
                     app.input_mode = InputMode::WaitingForResult;
                     app.clear_status();
                 }
@@ -418,32 +419,36 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
 
 /// Credits the appropriate stat for a categorized runner advance.
 ///
-/// `from_base` / `to_base` are 1-indexed (4 = home). The runner has already
-/// been moved by `advance_runner` before this is called.
-fn apply_advance_reason(app: &mut App, reason: &AdvanceReason, from_base: u8) {
-    let Ok(game) = app.game_mut() else { return };
+/// `to_base` is 1-indexed (4 = home). `runner_idx` is the lineup index of the runner
+/// who was moved (captured before `advance_runner` was called). The runner has already
+/// been physically moved; CS undoes that move and records an out instead.
+///
+/// Returns the `InningOutcome` (only `CaughtStealing` can end the half-inning).
+fn apply_advance_reason(
+    app: &mut App,
+    reason: &AdvanceReason,
+    to_base: u8,
+    runner_idx: Option<usize>,
+) -> InningOutcome {
     match reason {
         AdvanceReason::StolenBase => {
-            // The runner already moved from `from_base` to the next base.
-            // Look up who is now on (from_base + 1), or on all bases if
-            // the destination was home (scored → no longer on a base).
-            let dest = from_base + 1;
-            let idx = match dest {
-                2 => game.bases.second,
-                3 => game.bases.third,
-                // Scored (home) — can't look up on a base; fall back to
-                // the most-recently-advanced batter (heuristic: previous in order).
-                _ => None,
-            };
-            if let Some(i) = idx {
-                game.batting_team_mut().lineup[i].stats.stolen_bases += 1;
+            if let Ok(game) = app.game_mut() {
+                game.credit_stolen_base(runner_idx, to_base);
             }
+            InningOutcome::Continue
+        }
+        AdvanceReason::CaughtStealing => {
+            let Ok(game) = app.game_mut() else { return InningOutcome::Continue };
+            game.record_caught_stealing(runner_idx, to_base)
         }
         AdvanceReason::WildPitch => {
-            game.fielding_team_mut().current_pitcher_mut().stats.wild_pitches += 1;
+            if let Ok(game) = app.game_mut() {
+                game.fielding_team_mut().current_pitcher_mut().stats.wild_pitches += 1;
+            }
+            InningOutcome::Continue
         }
         AdvanceReason::PassedBall | AdvanceReason::Balk | AdvanceReason::Other => {
-            // Logged but no specific stat field
+            InningOutcome::Continue
         }
     }
 }

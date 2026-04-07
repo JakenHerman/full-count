@@ -931,6 +931,71 @@ impl GameState {
         scored
     }
 
+    // ── Stolen base / caught stealing ─────────────────────────────────────
+
+    /// Credits a stolen base to `runner_idx` and logs the play.
+    pub fn credit_stolen_base(&mut self, runner_idx: Option<usize>, to_base: u8) {
+        if let Some(i) = runner_idx {
+            let name = self.batting_team().lineup[i].info.name.clone();
+            self.batting_team_mut().lineup[i].stats.stolen_bases += 1;
+            let label = if to_base >= 4 { "H".to_string() } else { format!("{}B", to_base) };
+            self.play_log.push(PlayLogEntry {
+                inning: self.inning,
+                half: self.half.clone(),
+                batter_name: name,
+                description: format!("SB (\u{2192}{})", label),
+                rbi: 0,
+            });
+        }
+    }
+
+    /// Records a caught stealing at `to_base`: removes the runner (or undoes a scored run if
+    /// `to_base == 4`), credits CS to `runner_idx`, increments outs, and checks for end-of-half.
+    pub fn record_caught_stealing(&mut self, runner_idx: Option<usize>, to_base: u8) -> InningOutcome {
+        if to_base <= 3 {
+            match to_base {
+                1 => { self.bases.first = None; }
+                2 => { self.bases.second = None; }
+                3 => { self.bases.third = None; }
+                _ => {}
+            }
+        } else {
+            // Runner "scored" via advance_runner — undo that run from the line score
+            let inning_idx = (self.inning - 1) as usize;
+            if inning_idx < self.inning_scores.len() {
+                match self.half {
+                    Half::Top => {
+                        self.inning_scores[inning_idx].away_runs =
+                            self.inning_scores[inning_idx].away_runs.saturating_sub(1);
+                    }
+                    Half::Bottom => {
+                        self.inning_scores[inning_idx].home_runs =
+                            self.inning_scores[inning_idx].home_runs.saturating_sub(1);
+                    }
+                }
+            }
+        }
+        if let Some(i) = runner_idx {
+            let name = self.batting_team().lineup[i].info.name.clone();
+            self.batting_team_mut().lineup[i].stats.caught_stealing += 1;
+            let label = if to_base >= 4 { "H".to_string() } else { format!("{}B", to_base) };
+            self.play_log.push(PlayLogEntry {
+                inning: self.inning,
+                half: self.half.clone(),
+                batter_name: name,
+                description: format!("CS (\u{2192}{})", label),
+                rbi: 0,
+            });
+        }
+        self.outs += 1;
+        if self.outs >= 3 {
+            self.end_half_inning();
+            if self.game_over { InningOutcome::GameOver } else { InningOutcome::ThreeOuts }
+        } else {
+            InningOutcome::Continue
+        }
+    }
+
     // ── Decision assignment (call at game end) ─────────────────────────────
 
     /// Assigns win, loss, and save decisions to pitchers based on the final score.

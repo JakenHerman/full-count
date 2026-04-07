@@ -42,6 +42,7 @@ pub enum FielderResultType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AdvanceReason {
     StolenBase,
+    CaughtStealing,
     WildPitch,
     PassedBall,
     Balk,
@@ -55,8 +56,8 @@ pub enum AdvanceStage {
     SelectFrom,
     /// `from` has been selected; now waiting for the destination base.
     SelectTo { from: u8 },
-    /// Runner has been moved; now asking why (only under `advanced-stats`).
-    SelectReason { from: u8, to: u8, scored: bool },
+    /// Runner has been moved; now asking why.
+    SelectReason { from: u8, to: u8, scored: bool, runner_idx: Option<usize> },
 }
 
 /// The current input mode on the Scoring screen, controlling how keystrokes are interpreted.

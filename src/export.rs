@@ -127,8 +127,9 @@ fn play_class(desc: &str) -> &'static str {
 fn build_batter_rows(game: &GameState, is_home: bool, num_innings: usize) -> Vec<BatterRow> {
     let team = if is_home { &game.home } else { &game.away };
     let half = if is_home { Half::Bottom } else { Half::Top };
+    let batting_rows = team.batting_rows();
 
-    team.lineup
+    batting_rows
         .iter()
         .map(|slot| {
             // Collect all plays for this batter, grouped by inning (0-indexed)

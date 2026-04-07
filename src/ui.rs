@@ -835,7 +835,7 @@ fn draw_scoring_footer(f: &mut Frame, app: &App, area: Rect) {
                 Style::default().fg(Color::DarkGray),
             )),
             Line::from(Span::styled(
-                " [G]rdout [D]P [O]flyout [E]rror [C]FC [V]SacFly  \u{2502}  [A]dvance [Tab]Pitcher  [U]ndo  [F2]Save  [X]End [Q]Quit",
+                " [G]rdout [D]P [O]flyout [E]rror [C]FC [V]SacFly  \u{2502}  [A]dvance [R]Batter [Tab]Pitcher  [U]ndo  [F2]Save  [X]End [Q]Quit",
                 Style::default().fg(Color::DarkGray),
             )),
         ])
@@ -885,6 +885,16 @@ fn draw_popups(f: &mut Frame, app: &App, area: Rect) {
                 &title,
                 "Enter 0\u{2013}4",
                 buffer,
+                "[Enter] confirm  [Esc] cancel",
+            );
+        }
+        InputMode::BatterChange { name_buffer } => {
+            draw_input_popup(
+                f,
+                area,
+                " Batter Change ",
+                "New batter name",
+                name_buffer,
                 "[Enter] confirm  [Esc] cancel",
             );
         }
@@ -1057,6 +1067,7 @@ fn draw_summary_line_score(f: &mut Frame, game: &GameState, area: Rect) {
 
 fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Rect) {
     let team = if is_home { &game.home } else { &game.away };
+    let batting_rows = team.batting_rows();
 
     if cfg!(feature = "advanced-stats") {
         let header = Row::new([
@@ -1068,8 +1079,7 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
                 .add_modifier(Modifier::BOLD),
         );
 
-        let mut rows: Vec<Row> = team
-            .lineup
+        let mut rows: Vec<Row> = batting_rows
             .iter()
             .map(|slot| {
                 Row::new([
@@ -1091,57 +1101,57 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
 
         let totals = Row::new([
             "TOTALS".to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.at_bats as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.runs as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.hits as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.doubles as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.triples as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.home_runs as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.rbi as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.walks as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.strikeouts as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.stolen_bases as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.caught_stealing as u32)
                 .sum::<u32>()
@@ -1186,8 +1196,7 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
                 .add_modifier(Modifier::BOLD),
         );
 
-        let mut rows: Vec<Row> = team
-            .lineup
+        let mut rows: Vec<Row> = batting_rows
             .iter()
             .map(|slot| {
                 Row::new([
@@ -1204,32 +1213,32 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
 
         let totals = Row::new([
             "TOTALS".to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.at_bats as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.runs as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.hits as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.rbi as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.walks as u32)
                 .sum::<u32>()
                 .to_string(),
-            team.lineup
+            batting_rows
                 .iter()
                 .map(|s| s.stats.strikeouts as u32)
                 .sum::<u32>()

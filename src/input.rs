@@ -3,7 +3,7 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crate::app::{
     AdvanceReason, AdvanceStage, App, AppScreen, FielderResultType, InputMode, SetupSection,
 };
-use crate::game::{AtBatResult, InningOutcome, PitchEvent, PitchOutcome, PitcherInfo};
+use crate::game::{AtBatResult, BatterInfo, InningOutcome, PitchEvent, PitchOutcome, PitcherInfo};
 
 /// Routes a crossterm [`Event`] to the appropriate screen handler.
 ///
@@ -122,6 +122,7 @@ fn handle_scoring_key(app: &mut App, key: KeyEvent) {
         InputMode::WaitingForResult => handle_waiting(app, key),
         InputMode::FielderInput { .. } => handle_fielder_input(app, key),
         InputMode::RbiInput { .. } => handle_rbi_input(app, key),
+        InputMode::BatterChange { .. } => handle_batter_change(app, key),
         InputMode::PitcherChange { .. } => handle_pitcher_change(app, key),
         InputMode::RunnerAdvance(_) => handle_runner_advance(app, key),
         InputMode::SavePrompt { .. } => handle_save_prompt(app, key),
@@ -201,6 +202,13 @@ fn handle_waiting(app: &mut App, key: KeyEvent) {
 
         // ── Fielder's choice → ask for RBI ───────────────────────────────
         KeyCode::Char('c') | KeyCode::Char('C') => rbi_prompt(app, AtBatResult::FieldersChoice),
+
+        // ── Batter change ────────────────────────────────────────────────
+        KeyCode::Char('r') | KeyCode::Char('R') => {
+            app.input_mode = InputMode::BatterChange {
+                name_buffer: String::new(),
+            };
+        }
 
         // ── Pitcher change ────────────────────────────────────────────────
         KeyCode::Tab => {
@@ -340,6 +348,30 @@ fn handle_rbi_input(app: &mut App, key: KeyEvent) {
                 app.input_mode = InputMode::WaitingForResult;
             }
             _ => {}
+        }
+    }
+}
+
+fn handle_batter_change(app: &mut App, key: KeyEvent) {
+    if let InputMode::BatterChange { name_buffer } = app.input_mode.clone() {
+        if key.code == KeyCode::Enter {
+            if !name_buffer.trim().is_empty() {
+                let name = name_buffer.trim().to_string();
+                app.push_undo();
+                if let Ok(game) = app.game_mut() {
+                    game.change_batter(BatterInfo {
+                        name: name.clone(),
+                        season_avg: 0.0,
+                    });
+                }
+                app.set_status(format!("Now batting: {}", name));
+            }
+            app.input_mode = InputMode::WaitingForResult;
+            return;
+        }
+        match update_text_buffer(name_buffer, key.code) {
+            None => app.input_mode = InputMode::WaitingForResult,
+            Some(buf) => app.input_mode = InputMode::BatterChange { name_buffer: buf },
         }
     }
 }

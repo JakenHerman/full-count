@@ -324,6 +324,13 @@ pub struct LineupSlot {
     pub stats: BatterGameStats,
 }
 
+/// A completed batter appearance that was replaced in a specific batting-order spot.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BatterAppearance {
+    pub order_slot: usize,
+    pub slot: LineupSlot,
+}
+
 /// The win/loss/save decision assigned to a pitcher at the end of the game.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Decision {
@@ -525,6 +532,8 @@ pub struct Team {
     #[serde(default)]
     pub color: TeamColor,
     pub lineup: Vec<LineupSlot>, // always 9 entries
+    #[serde(default)]
+    pub substitutions: Vec<BatterAppearance>,
     pub pitchers: Vec<PitcherAppearance>,
     pub current_pitcher_idx: usize,
     pub batting_order_pos: usize, // 0–8, wraps mod 9
@@ -544,6 +553,7 @@ impl Team {
             name,
             color,
             lineup,
+            substitutions: Vec::new(),
             pitchers: vec![PitcherAppearance {
                 info: starter,
                 stats: PitcherGameStats::default(),
@@ -572,14 +582,48 @@ impl Team {
         &mut self.lineup[self.batting_order_pos]
     }
 
+    /// Returns batting rows in batting-order order, including any replaced hitters before the
+    /// current occupant of the same lineup spot.
+    pub fn batting_rows(&self) -> Vec<&LineupSlot> {
+        let mut rows = Vec::with_capacity(self.lineup.len() + self.substitutions.len());
+        for order_slot in 0..self.lineup.len() {
+            for appearance in &self.substitutions {
+                if appearance.order_slot == order_slot {
+                    rows.push(&appearance.slot);
+                }
+            }
+            rows.push(&self.lineup[order_slot]);
+        }
+        rows
+    }
+
     /// Moves to the next batter, wrapping from position 8 back to 0.
     pub fn advance_batter(&mut self) {
-        self.batting_order_pos = (self.batting_order_pos + 1) % 9;
+        self.batting_order_pos = (self.batting_order_pos + 1) % self.lineup.len();
+    }
+
+    /// Replaces the current hitter with a new batter in the same batting-order spot.
+    pub fn replace_current_batter(&mut self, new_batter: BatterInfo) {
+        let order_slot = self.batting_order_pos;
+        let replaced = self.lineup[order_slot].clone();
+        self.substitutions.push(BatterAppearance {
+            order_slot,
+            slot: replaced,
+        });
+        self.lineup[order_slot] = LineupSlot {
+            info: new_batter,
+            stats: BatterGameStats::default(),
+        };
     }
 
     /// Returns the total number of hits recorded across all lineup slots.
     pub fn total_hits(&self) -> u8 {
-        self.lineup.iter().map(|s| s.stats.hits).sum()
+        self.lineup.iter().map(|s| s.stats.hits).sum::<u8>()
+            + self
+                .substitutions
+                .iter()
+                .map(|appearance| appearance.slot.stats.hits)
+                .sum::<u8>()
     }
 }
 
@@ -1001,6 +1045,13 @@ impl GameState {
         fielding.current_pitcher_idx = fielding.pitchers.len() - 1;
     }
 
+    // ── Batter change ──────────────────────────────────────────────────────
+
+    /// Replaces the current batter with a new hitter in the same batting-order spot.
+    pub fn change_batter(&mut self, new_batter: BatterInfo) {
+        self.batting_team_mut().replace_current_batter(new_batter);
+    }
+
     // ── Manual runner advance ──────────────────────────────────────────────
 
     /// Manually moves a runner between bases and updates the inning score if they score.
@@ -1148,7 +1199,7 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_helpers::helpers::make_game;
+    use crate::test_helpers::helpers::{make_game, make_team};
 
     // ── TeamColor ──────────────────────────────────────────────────────
 
@@ -1820,6 +1871,49 @@ mod tests {
         game.apply_at_bat_result(AtBatResult::Walk, 0);
         assert_eq!(game.away.lineup[0].stats.at_bats, 0);
         assert_eq!(game.away.lineup[0].stats.walks, 1);
+    }
+
+    #[test]
+    fn test_change_batter_preserves_replaced_hitter_stats() {
+        let mut game = make_game();
+        game.away.lineup[0].stats.at_bats = 1;
+        game.away.lineup[0].stats.hits = 1;
+
+        game.change_batter(BatterInfo {
+            name: "Pinch Hitter".into(),
+            season_avg: 0.333,
+        });
+        game.apply_at_bat_result(AtBatResult::Walk, 0);
+
+        assert_eq!(game.away.substitutions.len(), 1);
+        assert_eq!(game.away.substitutions[0].slot.info.name, "Player 1");
+        assert_eq!(game.away.substitutions[0].slot.stats.hits, 1);
+        assert_eq!(game.away.lineup[0].info.name, "Pinch Hitter");
+        assert_eq!(game.away.lineup[0].stats.walks, 1);
+        assert_eq!(game.away.lineup[0].stats.hits, 0);
+        assert_eq!(game.away_total_hits(), 1);
+    }
+
+    #[test]
+    fn test_batting_rows_include_substituted_hitters_in_order() {
+        let mut team = make_team("Away");
+        team.batting_order_pos = 2;
+        team.replace_current_batter(BatterInfo {
+            name: "Bench Bat".into(),
+            season_avg: 0.290,
+        });
+
+        let names: Vec<&str> = team
+            .batting_rows()
+            .into_iter()
+            .map(|slot| slot.info.name.as_str())
+            .collect();
+
+        assert_eq!(names.len(), 10);
+        assert_eq!(names[0], "Player 1");
+        assert_eq!(names[1], "Player 2");
+        assert_eq!(names[2], "Player 3");
+        assert_eq!(names[3], "Bench Bat");
     }
 
     #[test]

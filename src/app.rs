@@ -83,6 +83,9 @@ pub enum InputMode {
         /// should not push a second one.
         from_pitch: bool,
     },
+    BatterChange {
+        name_buffer: String,
+    },
     PitcherChange {
         name_buffer: String,
     },

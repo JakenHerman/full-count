@@ -23,6 +23,7 @@ A keyboard-driven TUI for scoring baseball games in real time. Built in Rust wit
 - **Standard fielder notation** — `6-4-3` double play, `F8` flyout, `E6` error
 - **Live scoreboard** — inning-by-inning line score with R/H/E
 - **Batter & pitcher stat lines** — updated automatically after every play
+- **Batter changes** — swap in a new hitter mid-game without losing the replaced batter's line
 - **Pitcher changes** — unlimited relievers with W/L/S decisions at game end
 - **Manual runner advancement** — wild pitches, stolen bases, passed balls, balks
 - **Save & resume** — JSON saves at `~/.full-count/saves/`
@@ -57,7 +58,7 @@ full-count --load cubs-vs-sox --replay  # step through pitch-by-pitch
 
 **Fielder prompts:** `G` groundout · `D` double play · `O` flyout · `E` error · `V` sac fly — enter positions like `6-3` or `6-4-3`
 
-**Other:** `A` advance runner · `Tab` pitcher change · `U` undo · `F2` save · `X` end game · `Q` quit
+**Other:** `A` advance runner · `R` batter change · `Tab` pitcher change · `U` undo · `F2` save · `X` end game · `Q` quit
 
 After hits/walks/FC, an RBI prompt appears — type `0`–`4` and `Enter`. Press `Esc` to cancel any prompt.
 

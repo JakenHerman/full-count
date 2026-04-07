@@ -537,6 +537,15 @@ fn handle_replay_key(app: &mut App, key: KeyEvent) {
 
 fn handle_summary_key(app: &mut App, key: KeyEvent) {
     match key.code {
+        KeyCode::Char('e') | KeyCode::Char('E') => {
+            match app.game() {
+                Ok(game) => match crate::export::export_html(game) {
+                    Ok(path) => app.set_status(format!("Exported: {}", path.display())),
+                    Err(e) => app.set_status(format!("Export failed: {e}")),
+                },
+                Err(_) => {}
+            }
+        }
         KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
             app.should_quit = true;
         }

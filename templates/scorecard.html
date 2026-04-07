@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ away_name }} vs {{ home_name }} — Full Count Scorecard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: #fdfcf5;
+      color: #1a1a1a;
+      padding: 2rem 2.5rem;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .export-hint {
+      text-align: center;
+      padding: 6px 14px;
+      background: #e8f4e8;
+      border: 1px solid #9cbb9c;
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+      font-size: 0.8rem;
+      color: #2a4a2a;
+    }
+    .export-hint kbd {
+      display: inline-block;
+      background: #fff;
+      border: 1px solid #888;
+      border-bottom-width: 2px;
+      border-radius: 3px;
+      padding: 0 5px;
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
+
+    .scorecard-header {
+      text-align: center;
+      border-bottom: 3px double #1a1a1a;
+      padding-bottom: 0.8rem;
+      margin-bottom: 1.5rem;
+    }
+    .scorecard-header h1 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #444;
+      font-weight: normal;
+    }
+    .matchup {
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 1.2rem;
+      margin-top: 0.5rem;
+    }
+    .away-color { color: {{ away_color }}; }
+    .home-color { color: {{ home_color }}; }
+    .team-name-lg {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 1.6rem;
+      font-weight: bold;
+    }
+    .vs-label {
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 0.95rem;
+      color: #888;
+    }
+
+    h2.section-head {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 0.82rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      border-bottom: 1.5px solid currentColor;
+      padding-bottom: 2px;
+      margin: 1.6rem 0 0.6rem;
+    }
+
+    .sc-table { border-collapse: collapse; width: 100%; }
+    .sc-table th, .sc-table td {
+      border: 1px solid #c8c0a8;
+      padding: 3px 6px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .sc-table thead th {
+      background: #f0ece0;
+      font-weight: bold;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #444;
+    }
+    .sc-table tbody tr:nth-child(even) { background: #faf8f0; }
+    .sc-table tbody tr:hover { background: #f0ece0; }
+
+    /* Line score */
+    .ls-team { text-align: left !important; font-weight: bold; min-width: 110px; padding-left: 8px; }
+    .ls-r { font-weight: bold; border-left: 2px solid #999; color: #9a1515; }
+    .ls-blank { color: #ccc; }
+
+    /* Batting scorecard */
+    .bt-name { text-align: left !important; min-width: 130px; padding-left: 8px; font-weight: bold; }
+    .bt-ab { border-left: 2px solid #bbb; font-weight: bold; }
+    .bt-inn { min-width: 52px; max-width: 52px; font-size: 0.78rem; }
+    .bt-totals td { font-weight: bold !important; background: #ede9d8 !important; border-top: 2px solid #999; }
+    .bt-lob td { color: #666; font-style: italic; border-top: none !important; font-weight: normal !important; background: transparent !important; }
+
+    /* At-bat result colors */
+    .hit            { color: #155e15; font-weight: bold; }
+    .walk           { color: #1a3a90; font-weight: bold; }
+    .strikeout      { color: #8b0000; }
+    .stolen-base    { color: #0a6a6a; font-weight: bold; }
+    .caught-stealing{ color: #6a1010; }
+    .error          { color: #b35a00; }
+    .out            { color: #555; }
+    .empty          { color: #ddd; }
+
+    /* Pitching */
+    .pt-team-header td {
+      font-weight: bold;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: #e8e4d4 !important;
+      text-align: left;
+      padding-left: 8px;
+    }
+    .pt-name { text-align: left !important; padding-left: 18px; min-width: 140px; }
+    .pt-decision { font-weight: bold; color: #333; min-width: 28px; }
+    .pt-sep td { border: none; height: 6px; background: transparent !important; }
+
+    /* Play log */
+    .pl-half { color: #888; min-width: 40px; }
+    .pl-inn  { font-weight: bold; min-width: 28px; }
+    .pl-rbi  { color: #9a1515; min-width: 30px; }
+    .play-log-table td { text-align: left; }
+    .play-log-table .pl-half,
+    .play-log-table .pl-inn,
+    .play-log-table .pl-rbi { text-align: center; }
+    .play-log-table tbody tr:nth-child(even) { background: #f5f2e8; }
+
+    @media print {
+      .export-hint { display: none; }
+      body { padding: 0.4cm 0.6cm; background: white; font-size: 11px; }
+      .section-wrap { page-break-inside: avoid; }
+      h2.section-head { margin-top: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <p class="export-hint">
+    Save as PDF: <kbd>Ctrl+P</kbd> (Mac: <kbd>&#8984;P</kbd>) &#8594; <strong>Save as PDF</strong>
+    &nbsp;&middot;&nbsp; Generated by <strong>Full Count</strong>
+  </p>
+
+  <div class="scorecard-header">
+    <h1>Official Scorecard</h1>
+    <div class="matchup">
+      <span class="team-name-lg away-color">{{ away_name }}</span>
+      <span class="vs-label">at</span>
+      <span class="team-name-lg home-color">{{ home_name }}</span>
+    </div>
+  </div>
+
+  {# Line Score #}
+  <div class="section-wrap">
+    <h2 class="section-head" style="color:#444; border-color:#888;">Line Score</h2>
+    <div style="overflow-x:auto;">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th class="ls-team"></th>
+            {% for i in innings %}<th>{{ i }}</th>{% endfor %}
+            <th class="ls-r">R</th><th>H</th><th>E</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="ls-team away-color">{{ away_name }}</td>
+            {% for cell in inning_cells %}
+              {% if cell.away.is_empty() %}<td class="ls-blank">&mdash;</td>
+              {% else %}<td>{{ cell.away }}</td>{% endif %}
+            {% endfor %}
+            <td class="ls-r">{{ away_r }}</td>
+            <td>{{ away_h }}</td>
+            <td>{{ away_e }}</td>
+          </tr>
+          <tr>
+            <td class="ls-team home-color">{{ home_name }}</td>
+            {% for cell in inning_cells %}
+              {% if cell.home.is_empty() %}<td class="ls-blank">&mdash;</td>
+              {% else %}<td>{{ cell.home }}</td>{% endif %}
+            {% endfor %}
+            <td class="ls-r">{{ home_r }}</td>
+            <td>{{ home_h }}</td>
+            <td>{{ home_e }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# Away Batting #}
+  <div class="section-wrap">
+    <h2 class="section-head away-color" style="border-color:{{ away_color }};">{{ away_name }} Batting</h2>
+    <div style="overflow-x:auto;">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th class="bt-name">Batter</th>
+            {% for i in innings %}<th class="bt-inn">{{ i }}</th>{% endfor %}
+            <th class="bt-ab">AB</th><th>R</th><th>H</th><th>RBI</th><th>BB</th><th>K</th>
+            {% if advanced_stats %}<th>2B</th><th>3B</th><th>HR</th><th>SB</th><th>CS</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for batter in away_batters %}
+          <tr>
+            <td class="bt-name">{{ batter.name }}</td>
+            {% for cell in batter.inning_plays %}
+              <td class="bt-inn"><span class="{{ cell.class }}">{% if cell.text.is_empty() %}&nbsp;{% else %}{{ cell.text }}{% endif %}</span></td>
+            {% endfor %}
+            <td class="bt-ab">{{ batter.ab }}</td>
+            <td>{{ batter.r }}</td><td>{{ batter.h }}</td><td>{{ batter.rbi }}</td>
+            <td>{{ batter.bb }}</td><td>{{ batter.k }}</td>
+            {% if advanced_stats %}
+              <td>{{ batter.doubles }}</td><td>{{ batter.triples }}</td><td>{{ batter.home_runs }}</td>
+              <td>{{ batter.sb }}</td><td>{{ batter.cs }}</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+          <tr class="bt-totals">
+            <td class="bt-name">TOTALS</td>
+            {% for _i in innings %}<td class="bt-inn"></td>{% endfor %}
+            <td class="bt-ab">{{ away_totals.ab }}</td>
+            <td>{{ away_totals.r }}</td><td>{{ away_totals.h }}</td><td>{{ away_totals.rbi }}</td>
+            <td>{{ away_totals.bb }}</td><td>{{ away_totals.k }}</td>
+            {% if advanced_stats %}
+              <td>{{ away_totals.doubles }}</td><td>{{ away_totals.triples }}</td><td>{{ away_totals.home_runs }}</td>
+              <td>{{ away_totals.sb }}</td><td>{{ away_totals.cs }}</td>
+            {% endif %}
+          </tr>
+          <tr class="bt-lob">
+            <td class="bt-name" colspan="{{ stat_colspan }}">LOB: {{ away_lob }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# Home Batting #}
+  <div class="section-wrap">
+    <h2 class="section-head home-color" style="border-color:{{ home_color }};">{{ home_name }} Batting</h2>
+    <div style="overflow-x:auto;">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th class="bt-name">Batter</th>
+            {% for i in innings %}<th class="bt-inn">{{ i }}</th>{% endfor %}
+            <th class="bt-ab">AB</th><th>R</th><th>H</th><th>RBI</th><th>BB</th><th>K</th>
+            {% if advanced_stats %}<th>2B</th><th>3B</th><th>HR</th><th>SB</th><th>CS</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for batter in home_batters %}
+          <tr>
+            <td class="bt-name">{{ batter.name }}</td>
+            {% for cell in batter.inning_plays %}
+              <td class="bt-inn"><span class="{{ cell.class }}">{% if cell.text.is_empty() %}&nbsp;{% else %}{{ cell.text }}{% endif %}</span></td>
+            {% endfor %}
+            <td class="bt-ab">{{ batter.ab }}</td>
+            <td>{{ batter.r }}</td><td>{{ batter.h }}</td><td>{{ batter.rbi }}</td>
+            <td>{{ batter.bb }}</td><td>{{ batter.k }}</td>
+            {% if advanced_stats %}
+              <td>{{ batter.doubles }}</td><td>{{ batter.triples }}</td><td>{{ batter.home_runs }}</td>
+              <td>{{ batter.sb }}</td><td>{{ batter.cs }}</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+          <tr class="bt-totals">
+            <td class="bt-name">TOTALS</td>
+            {% for _i in innings %}<td class="bt-inn"></td>{% endfor %}
+            <td class="bt-ab">{{ home_totals.ab }}</td>
+            <td>{{ home_totals.r }}</td><td>{{ home_totals.h }}</td><td>{{ home_totals.rbi }}</td>
+            <td>{{ home_totals.bb }}</td><td>{{ home_totals.k }}</td>
+            {% if advanced_stats %}
+              <td>{{ home_totals.doubles }}</td><td>{{ home_totals.triples }}</td><td>{{ home_totals.home_runs }}</td>
+              <td>{{ home_totals.sb }}</td><td>{{ home_totals.cs }}</td>
+            {% endif %}
+          </tr>
+          <tr class="bt-lob">
+            <td class="bt-name" colspan="{{ stat_colspan }}">LOB: {{ home_lob }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# Pitching #}
+  <div class="section-wrap">
+    <h2 class="section-head" style="color:#444; border-color:#888;">Pitching</h2>
+    <div style="overflow-x:auto;">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th class="pt-name" style="text-align:left;">Pitcher</th>
+            <th class="pt-decision"></th>
+            <th>IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th>
+            {% if advanced_stats %}<th>WP</th><th>BF</th>{% endif %}
+            <th>PC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="pt-team-header">
+            {% if advanced_stats %}
+              <td class="away-color" colspan="11">{{ away_name }}</td>
+            {% else %}
+              <td class="away-color" colspan="9">{{ away_name }}</td>
+            {% endif %}
+          </tr>
+          {% for p in away_pitchers %}
+          <tr>
+            <td class="pt-name">{{ p.name }}</td>
+            <td class="pt-decision">{% if !p.decision.is_empty() %}({{ p.decision }}){% endif %}</td>
+            <td>{{ p.ip }}</td><td>{{ p.h }}</td><td>{{ p.r }}</td><td>{{ p.er }}</td>
+            <td>{{ p.bb }}</td><td>{{ p.k }}</td>
+            {% if advanced_stats %}<td>{{ p.wp }}</td><td>{{ p.bf }}</td>{% endif %}
+            <td>{{ p.pc }}</td>
+          </tr>
+          {% endfor %}
+          <tr class="pt-sep">
+            {% if advanced_stats %}<td colspan="11"></td>{% else %}<td colspan="9"></td>{% endif %}
+          </tr>
+          <tr class="pt-team-header">
+            {% if advanced_stats %}
+              <td class="home-color" colspan="11">{{ home_name }}</td>
+            {% else %}
+              <td class="home-color" colspan="9">{{ home_name }}</td>
+            {% endif %}
+          </tr>
+          {% for p in home_pitchers %}
+          <tr>
+            <td class="pt-name">{{ p.name }}</td>
+            <td class="pt-decision">{% if !p.decision.is_empty() %}({{ p.decision }}){% endif %}</td>
+            <td>{{ p.ip }}</td><td>{{ p.h }}</td><td>{{ p.r }}</td><td>{{ p.er }}</td>
+            <td>{{ p.bb }}</td><td>{{ p.k }}</td>
+            {% if advanced_stats %}<td>{{ p.wp }}</td><td>{{ p.bf }}</td>{% endif %}
+            <td>{{ p.pc }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# Play-by-Play #}
+  {% if !plays.is_empty() %}
+  <div class="section-wrap">
+    <h2 class="section-head" style="color:#444; border-color:#888;">Play-by-Play</h2>
+    <div style="overflow-x:auto;">
+      <table class="sc-table play-log-table">
+        <thead>
+          <tr>
+            <th class="pl-half">Half</th>
+            <th class="pl-inn">Inn</th>
+            <th style="min-width:120px;">Batter</th>
+            <th style="min-width:160px;">Play</th>
+            <th class="pl-rbi">RBI</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for play in plays %}
+          <tr>
+            <td class="pl-half">{{ play.half }}</td>
+            <td class="pl-inn">{{ play.inning }}</td>
+            <td>{{ play.batter }}</td>
+            <td><span class="{{ play.description_class }}">{{ play.description }}</span></td>
+            <td class="pl-rbi">{% if play.rbi > 0 %}{{ play.rbi }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <p style="text-align:center; color:#bbb; font-size:0.7rem; margin-top:2rem; border-top:1px solid #e0d8c0; padding-top:0.6rem;">
+    Scored with Full Count &mdash; every pitch, every play, every out.
+  </p>
+
+</body>
+</html>

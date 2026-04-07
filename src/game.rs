@@ -87,6 +87,27 @@ impl TeamColor {
         TeamColor::ALL[(idx + TeamColor::ALL.len() - 1) % TeamColor::ALL.len()]
     }
 
+    /// Maps to a CSS hex color string for HTML export.
+    pub fn to_hex(self) -> &'static str {
+        match self {
+            TeamColor::Red     => "#dc143c",
+            TeamColor::Orange  => "#eb6e1f",
+            TeamColor::Gold    => "#fdb827",
+            TeamColor::Yellow  => "#f5c800",
+            TeamColor::Green   => "#228b22",
+            TeamColor::Teal    => "#008080",
+            TeamColor::Cyan    => "#0097a7",
+            TeamColor::Blue    => "#1565c0",
+            TeamColor::Navy    => "#003087",
+            TeamColor::Purple  => "#68399a",
+            TeamColor::Magenta => "#c2185b",
+            TeamColor::Brown   => "#a56e37",
+            TeamColor::Black   => "#1a1a1a",
+            TeamColor::Gray    => "#757575",
+            TeamColor::White   => "#e0e0e0",
+        }
+    }
+
     /// Maps to the corresponding [`ratatui::style::Color`].
     ///
     /// Uses true-color RGB for Orange, Gold, Teal, Navy, Purple, and Brown

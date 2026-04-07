@@ -812,6 +812,7 @@ fn draw_summary(f: &mut Frame, app: &App) {
             Constraint::Min(11),    // away batting
             Constraint::Min(11),    // home batting
             Constraint::Min(6),     // pitching
+            Constraint::Length(1),  // footer
         ])
         .split(inner);
 
@@ -819,6 +820,18 @@ fn draw_summary(f: &mut Frame, app: &App) {
     draw_summary_batting(f, game, false, chunks[1]);
     draw_summary_batting(f, game, true, chunks[2]);
     draw_summary_pitching(f, game, chunks[3]);
+
+    let footer_text = if let Some(msg) = &app.status_message {
+        Line::from(vec![Span::styled(msg.clone(), Style::default().fg(Color::Green))])
+    } else {
+        Line::from(vec![
+            Span::styled("[E]", Style::default().fg(Color::Yellow)),
+            Span::raw(" Export HTML  "),
+            Span::styled("[Q]", Style::default().fg(Color::Yellow)),
+            Span::raw(" Quit"),
+        ])
+    };
+    f.render_widget(Paragraph::new(footer_text), chunks[4]);
 }
 
 fn draw_summary_line_score(f: &mut Frame, game: &GameState, area: Rect) {

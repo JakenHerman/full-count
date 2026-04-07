@@ -211,7 +211,7 @@ fn handle_waiting(app: &mut App, key: KeyEvent) {
 
         // ── Manual runner advance ─────────────────────────────────────────
         KeyCode::Char('a') | KeyCode::Char('A') => {
-            app.input_mode = InputMode::RunnerAdvance(AdvanceStage::SelectFrom);
+            app.input_mode = InputMode::RunnerAdvance(AdvanceStage::From);
             app.set_status("Move runner from base: [1] [2] [3]  [Esc] cancel");
         }
 
@@ -368,19 +368,19 @@ fn handle_pitcher_change(app: &mut App, key: KeyEvent) {
 fn handle_runner_advance(app: &mut App, key: KeyEvent) {
     if let InputMode::RunnerAdvance(ref stage) = app.input_mode.clone() {
         match stage {
-            AdvanceStage::SelectFrom => match key.code {
+            AdvanceStage::From => match key.code {
                 KeyCode::Esc => {
                     app.input_mode = InputMode::WaitingForResult;
                     app.clear_status();
                 }
                 KeyCode::Char(c @ '1'..='3') => {
                     let from = c as u8 - b'0';
-                    app.input_mode = InputMode::RunnerAdvance(AdvanceStage::SelectTo { from });
+                    app.input_mode = InputMode::RunnerAdvance(AdvanceStage::To { from });
                     app.set_status("To base: [1] [2] [3] [H]ome  [Esc] cancel");
                 }
                 _ => {}
             },
-            AdvanceStage::SelectTo { from } => {
+            AdvanceStage::To { from } => {
                 let from = *from;
                 match key.code {
                     KeyCode::Esc => {
@@ -397,8 +397,8 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
                             _ => None,
                         });
                         app.push_undo();
-                        let scored = app.game_mut().map_or(false, |g| g.advance_runner(from, to));
-                        app.input_mode = InputMode::RunnerAdvance(AdvanceStage::SelectReason {
+                        let scored = app.game_mut().is_ok_and(|g| g.advance_runner(from, to));
+                        app.input_mode = InputMode::RunnerAdvance(AdvanceStage::Reason {
                             from,
                             to,
                             scored,
@@ -416,8 +416,8 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
                             _ => None,
                         });
                         app.push_undo();
-                        let scored = app.game_mut().map_or(false, |g| g.advance_runner(from, 4));
-                        app.input_mode = InputMode::RunnerAdvance(AdvanceStage::SelectReason {
+                        let scored = app.game_mut().is_ok_and(|g| g.advance_runner(from, 4));
+                        app.input_mode = InputMode::RunnerAdvance(AdvanceStage::Reason {
                             from,
                             to: 4,
                             scored,
@@ -430,7 +430,7 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
                     _ => {}
                 }
             }
-            AdvanceStage::SelectReason {
+            AdvanceStage::Reason {
                 from: _,
                 to,
                 scored: _,
@@ -580,12 +580,11 @@ fn handle_replay_key(app: &mut App, key: KeyEvent) {
 
 fn handle_summary_key(app: &mut App, key: KeyEvent) {
     match key.code {
-        KeyCode::Char('e') | KeyCode::Char('E') => match app.game() {
-            Ok(game) => match crate::export::export_html(game) {
+        KeyCode::Char('e') | KeyCode::Char('E') => if let Ok(game) = app.game() {
+            match crate::export::export_html(game) {
                 Ok(path) => app.set_status(format!("Exported: {}", path.display())),
                 Err(e) => app.set_status(format!("Export failed: {e}")),
-            },
-            Err(_) => {}
+            }
         },
         KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
             app.should_quit = true;
@@ -652,7 +651,7 @@ fn parse_fielder_sequence(
 
     let positions = positions.map_err(|_| "Invalid position — use digits 1–9".to_string())?;
 
-    if positions.iter().any(|&p| p < 1 || p > 9) {
+    if positions.iter().any(|&p| !(1..=9).contains(&p)) {
         return Err("Positions must be 1–9".into());
     }
 

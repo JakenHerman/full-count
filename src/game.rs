@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /// A curated palette of team colors covering all 30 MLB primary colors.
 ///
 /// Uses true-color RGB where ANSI colors lack a good match.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TeamColor {
     /// Cardinals, Reds, Red Sox, Angels, Phillies, Nationals, D-backs, Braves, Twins, Guardians
     Red,
@@ -31,6 +31,7 @@ pub enum TeamColor {
     /// White Sox, Marlins, Pirates
     Black,
     Gray,
+    #[default]
     White,
 }
 
@@ -134,11 +135,6 @@ impl TeamColor {
     }
 }
 
-impl Default for TeamColor {
-    fn default() -> Self {
-        TeamColor::White
-    }
-}
 
 // ── Half-inning direction ──────────────────────────────────────────────────
 

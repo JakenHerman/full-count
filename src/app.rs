@@ -55,11 +55,11 @@ pub enum AdvanceReason {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AdvanceStage {
     /// Waiting for the user to select which base the runner is currently on.
-    SelectFrom,
+    From,
     /// `from` has been selected; now waiting for the destination base.
-    SelectTo { from: u8 },
+    To { from: u8 },
     /// Runner has been moved; now asking why.
-    SelectReason {
+    Reason {
         from: u8,
         to: u8,
         scored: bool,

@@ -1152,7 +1152,7 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
 
         // LOB row (team-level)
         let mut lob_cells: Vec<String> = vec![format!("LOB: {}", team.left_on_base)];
-        lob_cells.extend(std::iter::repeat(String::new()).take(11));
+        lob_cells.extend(std::iter::repeat_n(String::new(), 11));
         rows.push(Row::new(lob_cells).style(Style::default().fg(Color::DarkGray)));
 
         let widths = [
@@ -1287,7 +1287,7 @@ fn draw_summary_pitching(f: &mut Frame, game: &GameState, area: Rect) {
         rows.push(
             Row::new(
                 std::iter::once(team.name.clone())
-                    .chain(std::iter::repeat(String::new()).take(col_count - 1))
+                    .chain(std::iter::repeat_n(String::new(), col_count - 1))
                     .collect::<Vec<_>>(),
             )
             .style(

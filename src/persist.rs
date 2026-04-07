@@ -174,7 +174,7 @@ pub fn list_saves_in_dir(dir: &Path) -> Vec<SaveSlot> {
     let mut paths: Vec<PathBuf> = entries
         .filter_map(|e| e.ok())
         .map(|e| e.path())
-        .filter(|p| p.extension().map_or(false, |ext| ext == "json"))
+        .filter(|p| p.extension().is_some_and(|ext| ext == "json"))
         .collect();
 
     paths.sort_by_key(|p| {

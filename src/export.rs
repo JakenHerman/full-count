@@ -128,79 +128,99 @@ fn build_batter_rows(game: &GameState, is_home: bool, num_innings: usize) -> Vec
     let team = if is_home { &game.home } else { &game.away };
     let half = if is_home { Half::Bottom } else { Half::Top };
 
-    team.lineup.iter().map(|slot| {
-        // Collect all plays for this batter, grouped by inning (0-indexed)
-        let mut by_inning: Vec<Vec<String>> = vec![Vec::new(); num_innings];
-        for entry in &game.play_log {
-            if entry.half == half && entry.batter_name == slot.info.name {
-                let idx = (entry.inning as usize).saturating_sub(1);
-                if idx < num_innings {
-                    by_inning[idx].push(entry.description.clone());
+    team.lineup
+        .iter()
+        .map(|slot| {
+            // Collect all plays for this batter, grouped by inning (0-indexed)
+            let mut by_inning: Vec<Vec<String>> = vec![Vec::new(); num_innings];
+            for entry in &game.play_log {
+                if entry.half == half && entry.batter_name == slot.info.name {
+                    let idx = (entry.inning as usize).saturating_sub(1);
+                    if idx < num_innings {
+                        by_inning[idx].push(entry.description.clone());
+                    }
                 }
             }
-        }
 
-        let inning_plays = by_inning.iter().map(|plays| {
-            if plays.is_empty() {
-                PlayCell { text: String::new(), class: "empty".to_string() }
-            } else {
-                let text = plays.join(" | ");
-                let class = play_class(&plays[0]).to_string();
-                PlayCell { text, class }
+            let inning_plays = by_inning
+                .iter()
+                .map(|plays| {
+                    if plays.is_empty() {
+                        PlayCell {
+                            text: String::new(),
+                            class: "empty".to_string(),
+                        }
+                    } else {
+                        let text = plays.join(" | ");
+                        let class = play_class(&plays[0]).to_string();
+                        PlayCell { text, class }
+                    }
+                })
+                .collect();
+
+            BatterRow {
+                name: slot.info.name.clone(),
+                inning_plays,
+                ab: slot.stats.at_bats,
+                r: slot.stats.runs,
+                h: slot.stats.hits,
+                rbi: slot.stats.rbi,
+                bb: slot.stats.walks,
+                k: slot.stats.strikeouts,
+                doubles: slot.stats.doubles,
+                triples: slot.stats.triples,
+                home_runs: slot.stats.home_runs,
+                sb: slot.stats.stolen_bases,
+                cs: slot.stats.caught_stealing,
             }
-        }).collect();
-
-        BatterRow {
-            name: slot.info.name.clone(),
-            inning_plays,
-            ab: slot.stats.at_bats,
-            r: slot.stats.runs,
-            h: slot.stats.hits,
-            rbi: slot.stats.rbi,
-            bb: slot.stats.walks,
-            k: slot.stats.strikeouts,
-            doubles: slot.stats.doubles,
-            triples: slot.stats.triples,
-            home_runs: slot.stats.home_runs,
-            sb: slot.stats.stolen_bases,
-            cs: slot.stats.caught_stealing,
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 fn build_totals(batters: &[BatterRow], num_innings: usize) -> BatterRow {
     BatterRow {
         name: "TOTALS".to_string(),
-        inning_plays: (0..num_innings).map(|_| PlayCell { text: String::new(), class: "empty".to_string() }).collect(),
-        ab:         batters.iter().map(|b| b.ab as u32).sum::<u32>() as u8,
-        r:          batters.iter().map(|b| b.r as u32).sum::<u32>() as u8,
-        h:          batters.iter().map(|b| b.h as u32).sum::<u32>() as u8,
-        rbi:        batters.iter().map(|b| b.rbi as u32).sum::<u32>() as u8,
-        bb:         batters.iter().map(|b| b.bb as u32).sum::<u32>() as u8,
-        k:          batters.iter().map(|b| b.k as u32).sum::<u32>() as u8,
-        doubles:    batters.iter().map(|b| b.doubles as u32).sum::<u32>() as u8,
-        triples:    batters.iter().map(|b| b.triples as u32).sum::<u32>() as u8,
-        home_runs:  batters.iter().map(|b| b.home_runs as u32).sum::<u32>() as u8,
-        sb:         batters.iter().map(|b| b.sb as u32).sum::<u32>() as u8,
-        cs:         batters.iter().map(|b| b.cs as u32).sum::<u32>() as u8,
+        inning_plays: (0..num_innings)
+            .map(|_| PlayCell {
+                text: String::new(),
+                class: "empty".to_string(),
+            })
+            .collect(),
+        ab: batters.iter().map(|b| b.ab as u32).sum::<u32>() as u8,
+        r: batters.iter().map(|b| b.r as u32).sum::<u32>() as u8,
+        h: batters.iter().map(|b| b.h as u32).sum::<u32>() as u8,
+        rbi: batters.iter().map(|b| b.rbi as u32).sum::<u32>() as u8,
+        bb: batters.iter().map(|b| b.bb as u32).sum::<u32>() as u8,
+        k: batters.iter().map(|b| b.k as u32).sum::<u32>() as u8,
+        doubles: batters.iter().map(|b| b.doubles as u32).sum::<u32>() as u8,
+        triples: batters.iter().map(|b| b.triples as u32).sum::<u32>() as u8,
+        home_runs: batters.iter().map(|b| b.home_runs as u32).sum::<u32>() as u8,
+        sb: batters.iter().map(|b| b.sb as u32).sum::<u32>() as u8,
+        cs: batters.iter().map(|b| b.cs as u32).sum::<u32>() as u8,
     }
 }
 
 fn build_pitcher_rows(game: &GameState, is_home: bool) -> Vec<PitcherRow> {
     let team = if is_home { &game.home } else { &game.away };
-    team.pitchers.iter().map(|p| PitcherRow {
-        name: p.info.name.clone(),
-        decision: p.decision.map(|d| d.label().to_string()).unwrap_or_default(),
-        ip: p.stats.ip_display(),
-        h:  p.stats.hits_allowed,
-        r:  p.stats.runs_allowed,
-        er: p.stats.earned_runs,
-        bb: p.stats.walks,
-        k:  p.stats.strikeouts,
-        wp: p.stats.wild_pitches,
-        bf: p.stats.batters_faced,
-        pc: p.stats.pitch_count,
-    }).collect()
+    team.pitchers
+        .iter()
+        .map(|p| PitcherRow {
+            name: p.info.name.clone(),
+            decision: p
+                .decision
+                .map(|d| d.label().to_string())
+                .unwrap_or_default(),
+            ip: p.stats.ip_display(),
+            h: p.stats.hits_allowed,
+            r: p.stats.runs_allowed,
+            er: p.stats.earned_runs,
+            bb: p.stats.walks,
+            k: p.stats.strikeouts,
+            wp: p.stats.wild_pitches,
+            bf: p.stats.batters_faced,
+            pc: p.stats.pitch_count,
+        })
+        .collect()
 }
 
 fn build_template(game: &GameState) -> ScorecardTemplate {
@@ -211,33 +231,48 @@ fn build_template(game: &GameState) -> ScorecardTemplate {
     // Detect the "home didn't bat in final inning" case (user pressed X after top half)
     let home_x_last = game.game_over && game.half == Half::Bottom;
 
-    let inning_cells: Vec<InningCell> = (0..num_innings).map(|i| {
-        if i < game.inning_scores.len() {
-            let score = &game.inning_scores[i];
-            let home_str = if home_x_last && i + 1 == game.inning_scores.len() {
-                "x".to_string()
+    let inning_cells: Vec<InningCell> = (0..num_innings)
+        .map(|i| {
+            if i < game.inning_scores.len() {
+                let score = &game.inning_scores[i];
+                let home_str = if home_x_last && i + 1 == game.inning_scores.len() {
+                    "x".to_string()
+                } else {
+                    score.home_runs.to_string()
+                };
+                InningCell {
+                    away: score.away_runs.to_string(),
+                    home: home_str,
+                }
             } else {
-                score.home_runs.to_string()
-            };
-            InningCell { away: score.away_runs.to_string(), home: home_str }
-        } else {
-            InningCell { away: String::new(), home: String::new() }
-        }
-    }).collect();
+                InningCell {
+                    away: String::new(),
+                    home: String::new(),
+                }
+            }
+        })
+        .collect();
 
     let away_batters = build_batter_rows(game, false, num_innings);
     let home_batters = build_batter_rows(game, true, num_innings);
     let away_totals = build_totals(&away_batters, num_innings);
     let home_totals = build_totals(&home_batters, num_innings);
 
-    let plays: Vec<PlayEntry> = game.play_log.iter().map(|e| PlayEntry {
-        half: match e.half { Half::Top => "Top".to_string(), Half::Bottom => "Bot".to_string() },
-        inning: e.inning,
-        batter: e.batter_name.clone(),
-        description_class: play_class(&e.description).to_string(),
-        description: e.description.clone(),
-        rbi: e.rbi,
-    }).collect();
+    let plays: Vec<PlayEntry> = game
+        .play_log
+        .iter()
+        .map(|e| PlayEntry {
+            half: match e.half {
+                Half::Top => "Top".to_string(),
+                Half::Bottom => "Bot".to_string(),
+            },
+            inning: e.inning,
+            batter: e.batter_name.clone(),
+            description_class: play_class(&e.description).to_string(),
+            description: e.description.clone(),
+            rbi: e.rbi,
+        })
+        .collect();
 
     // colspan = 1 (name) + innings + stat columns
     let stat_cols = if advanced_stats { 11 } else { 6 };
@@ -252,7 +287,7 @@ fn build_template(game: &GameState) -> ScorecardTemplate {
         inning_cells,
         away_r: game.away_total_runs() as u32,
         away_h: game.away_total_hits() as u32,
-        away_e: game.errors.home,  // errors charged to the fielding team
+        away_e: game.errors.home, // errors charged to the fielding team
         home_r: game.home_total_runs() as u32,
         home_h: game.home_total_hits() as u32,
         home_e: game.errors.away,
@@ -311,7 +346,9 @@ mod tests {
     #[test]
     fn test_render_does_not_panic_on_fresh_game() {
         let game = make_game();
-        let html = build_template(&game).render().expect("template render failed");
+        let html = build_template(&game)
+            .render()
+            .expect("template render failed");
         assert!(html.contains("Away"), "away team name missing");
         assert!(html.contains("Home"), "home team name missing");
         assert!(html.contains("Line Score"), "line score section missing");

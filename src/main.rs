@@ -14,8 +14,7 @@ use std::time::Duration;
 
 use clap::Parser;
 use crossterm::{
-    event,
-    execute,
+    event, execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};

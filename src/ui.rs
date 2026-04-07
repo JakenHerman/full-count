@@ -46,15 +46,15 @@ fn draw_title(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(top_pad),         // top padding
-            Constraint::Length(logo_height),      // ASCII logo
-            Constraint::Length(1),                // spacer
-            Constraint::Length(1),                // baseball decoration
-            Constraint::Length(1),                // spacer
-            Constraint::Length(menu_height),       // menu
-            Constraint::Length(1),                // spacer
-            Constraint::Length(1),                // footer
-            Constraint::Min(0),                   // bottom fill
+            Constraint::Length(top_pad),     // top padding
+            Constraint::Length(logo_height), // ASCII logo
+            Constraint::Length(1),           // spacer
+            Constraint::Length(1),           // baseball decoration
+            Constraint::Length(1),           // spacer
+            Constraint::Length(menu_height), // menu
+            Constraint::Length(1),           // spacer
+            Constraint::Length(1),           // footer
+            Constraint::Min(0),              // bottom fill
         ])
         .split(area);
 
@@ -64,7 +64,9 @@ fn draw_title(f: &mut Frame, app: &App) {
         .map(|l| {
             Line::from(Span::styled(
                 *l,
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
             ))
         })
         .collect();
@@ -153,12 +155,16 @@ fn draw_setup(f: &mut Frame, app: &App) {
     // ── Team name fields ───────────────────────────────────────────────────
     let name_cols = two_col_split(rows[0]);
     render_input_field(
-        f, " Away Team ", &app.setup.away_name,
+        f,
+        " Away Team ",
+        &app.setup.away_name,
         app.setup_cursor == SetupSection::AwayTeamName,
         name_cols[0],
     );
     render_input_field(
-        f, " Home Team ", &app.setup.home_name,
+        f,
+        " Home Team ",
+        &app.setup.home_name,
         app.setup_cursor == SetupSection::HomeTeamName,
         name_cols[1],
     );
@@ -166,12 +172,16 @@ fn draw_setup(f: &mut Frame, app: &App) {
     // ── Team color pickers ─────────────────────────────────────────────────
     let color_cols = two_col_split(rows[1]);
     render_color_picker(
-        f, " Away Color ", app.setup.away_color,
+        f,
+        " Away Color ",
+        app.setup.away_color,
         app.setup_cursor == SetupSection::AwayColor,
         color_cols[0],
     );
     render_color_picker(
-        f, " Home Color ", app.setup.home_color,
+        f,
+        " Home Color ",
+        app.setup.home_color,
         app.setup_cursor == SetupSection::HomeColor,
         color_cols[1],
     );
@@ -206,15 +216,19 @@ fn draw_setup(f: &mut Frame, app: &App) {
         let halves = two_col_split(row_rect);
 
         render_lineup_row(
-            f, i + 1,
-            &app.setup.away_lineup[i].name, &app.setup.away_lineup[i].avg,
+            f,
+            i + 1,
+            &app.setup.away_lineup[i].name,
+            &app.setup.away_lineup[i].avg,
             app.setup_cursor == SetupSection::AwayLineup(i, LineupField::Name),
             app.setup_cursor == SetupSection::AwayLineup(i, LineupField::Avg),
             halves[0],
         );
         render_lineup_row(
-            f, i + 1,
-            &app.setup.home_lineup[i].name, &app.setup.home_lineup[i].avg,
+            f,
+            i + 1,
+            &app.setup.home_lineup[i].name,
+            &app.setup.home_lineup[i].avg,
             app.setup_cursor == SetupSection::HomeLineup(i, LineupField::Name),
             app.setup_cursor == SetupSection::HomeLineup(i, LineupField::Avg),
             halves[1],
@@ -224,12 +238,16 @@ fn draw_setup(f: &mut Frame, app: &App) {
     // ── Starter fields ─────────────────────────────────────────────────────
     let starter_cols = two_col_split(rows[6]);
     render_input_field(
-        f, " Away Starter (P) ", &app.setup.away_starter,
+        f,
+        " Away Starter (P) ",
+        &app.setup.away_starter,
         app.setup_cursor == SetupSection::AwayStarter,
         starter_cols[0],
     );
     render_input_field(
-        f, " Home Starter (P) ", &app.setup.home_starter,
+        f,
+        " Home Starter (P) ",
+        &app.setup.home_starter,
         app.setup_cursor == SetupSection::HomeStarter,
         starter_cols[1],
     );
@@ -306,14 +324,18 @@ fn render_color_picker(f: &mut Frame, title: &str, color: TeamColor, focused: bo
         Line::from(vec![
             Span::styled(" \u{25c0} ", Style::default().fg(Color::Yellow)),
             Span::styled(swatch, Style::default().fg(rcolor)),
-            Span::styled(format!(" {} ", color.name()), Style::default().fg(rcolor).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                format!(" {} ", color.name()),
+                Style::default().fg(rcolor).add_modifier(Modifier::BOLD),
+            ),
             Span::styled(swatch, Style::default().fg(rcolor)),
             Span::styled(" \u{25b6}", Style::default().fg(Color::Yellow)),
         ])
     } else {
-        Line::from(vec![
-            Span::styled(format!("   {} {} {}", swatch, color.name(), swatch), Style::default().fg(rcolor)),
-        ])
+        Line::from(vec![Span::styled(
+            format!("   {} {} {}", swatch, color.name(), swatch),
+            Style::default().fg(rcolor),
+        )])
     };
 
     f.render_widget(Paragraph::new(content).block(block), area);
@@ -343,18 +365,25 @@ fn render_lineup_row(
     area: Rect,
 ) {
     let name_style = if name_focused {
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default()
     };
     let line = if cfg!(feature = "advanced-stats") {
         let avg_style = if avg_focused {
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::Cyan)
         };
         Line::from(vec![
-            Span::styled(format!(" {:>1}  ", num), Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                format!(" {:>1}  ", num),
+                Style::default().fg(Color::DarkGray),
+            ),
             Span::styled(format!("{:<18}", name), name_style),
             Span::styled("  ", Style::default()),
             Span::styled(avg.to_string(), avg_style),
@@ -362,7 +391,10 @@ fn render_lineup_row(
     } else {
         let _ = (avg, avg_focused); // suppress unused warnings when feature is off
         Line::from(vec![
-            Span::styled(format!(" {:>1}  ", num), Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                format!(" {:>1}  ", num),
+                Style::default().fg(Color::DarkGray),
+            ),
             Span::styled(format!("{:<18}", name), name_style),
         ])
     };
@@ -378,10 +410,10 @@ fn draw_scoring(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(5), // line score
+            Constraint::Length(5),  // line score
             Constraint::Length(10), // diamond + batter/pitcher info
-            Constraint::Min(5),    // play log
-            Constraint::Length(3), // footer / keybindings
+            Constraint::Min(5),     // play log
+            Constraint::Length(3),  // footer / keybindings
         ])
         .split(area);
 
@@ -403,14 +435,23 @@ fn draw_scoring(f: &mut Frame, app: &App) {
 
 fn draw_line_score(f: &mut Frame, game: &GameState, area: Rect) {
     let innings = game.inning_scores.len().max(9);
-    let half_arrow = if game.half == Half::Top { "\u{25b2}" } else { "\u{25bc}" };
+    let half_arrow = if game.half == Half::Top {
+        "\u{25b2}"
+    } else {
+        "\u{25bc}"
+    };
 
     let header_cells: Vec<Cell> = std::iter::once(Cell::from(""))
-        .chain((1..=innings).map(|i| {
-            Cell::from(i.to_string()).style(Style::default().fg(Color::DarkGray))
-        }))
+        .chain(
+            (1..=innings)
+                .map(|i| Cell::from(i.to_string()).style(Style::default().fg(Color::DarkGray))),
+        )
         .chain([
-            Cell::from("R").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Cell::from("R").style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Cell::from("H").style(Style::default().fg(Color::DarkGray)),
             Cell::from("E").style(Style::default().fg(Color::DarkGray)),
         ])
@@ -419,12 +460,16 @@ fn draw_line_score(f: &mut Frame, game: &GameState, area: Rect) {
     let header = Row::new(header_cells).style(Style::default().add_modifier(Modifier::BOLD));
 
     let away_style = if game.half == Half::Top {
-        Style::default().fg(game.away.color.to_color()).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(game.away.color.to_color())
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::DarkGray)
     };
     let home_style = if game.half == Half::Bottom {
-        Style::default().fg(game.home.color.to_color()).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(game.home.color.to_color())
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::DarkGray)
     };
@@ -433,8 +478,14 @@ fn draw_line_score(f: &mut Frame, game: &GameState, area: Rect) {
     let home_row = Row::new(score_row_cells(game, true, innings)).style(home_style);
 
     let mut widths: Vec<Constraint> = vec![Constraint::Length(14)]; // team name
-    for _ in 0..innings { widths.push(Constraint::Length(3)); }
-    widths.extend([Constraint::Length(4), Constraint::Length(4), Constraint::Length(4)]);
+    for _ in 0..innings {
+        widths.push(Constraint::Length(3));
+    }
+    widths.extend([
+        Constraint::Length(4),
+        Constraint::Length(4),
+        Constraint::Length(4),
+    ]);
 
     let table = Table::new([away_row, home_row], widths)
         .header(header)
@@ -448,13 +499,21 @@ fn draw_line_score(f: &mut Frame, game: &GameState, area: Rect) {
 }
 
 fn score_row_cells(game: &GameState, is_home: bool, innings: usize) -> Vec<Cell<'static>> {
-    let name = if is_home { game.home.name.clone() } else { game.away.name.clone() };
+    let name = if is_home {
+        game.home.name.clone()
+    } else {
+        game.away.name.clone()
+    };
     let mut cells: Vec<Cell<'static>> = vec![Cell::from(name)];
 
     for i in 0..innings {
         let s = if i < game.inning_scores.len() {
             let score = &game.inning_scores[i];
-            let r = if is_home { score.home_runs } else { score.away_runs };
+            let r = if is_home {
+                score.home_runs
+            } else {
+                score.away_runs
+            };
             r.to_string()
         } else {
             "-".to_string()
@@ -462,36 +521,63 @@ fn score_row_cells(game: &GameState, is_home: bool, innings: usize) -> Vec<Cell<
         cells.push(Cell::from(s));
     }
 
-    let r = if is_home { game.home_total_runs() } else { game.away_total_runs() };
-    let h = if is_home { game.home_total_hits() } else { game.away_total_hits() };
-    let e = if is_home { game.errors.home } else { game.errors.away };
+    let r = if is_home {
+        game.home_total_runs()
+    } else {
+        game.away_total_runs()
+    };
+    let h = if is_home {
+        game.home_total_hits()
+    } else {
+        game.away_total_hits()
+    };
+    let e = if is_home {
+        game.errors.home
+    } else {
+        game.errors.away
+    };
 
-    cells.push(Cell::from(r.to_string()).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)));
+    cells.push(
+        Cell::from(r.to_string()).style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+    );
     cells.push(Cell::from(h.to_string()));
     cells.push(Cell::from(e.to_string()));
     cells
 }
 
 fn draw_diamond(f: &mut Frame, game: &GameState, area: Rect) {
-    let occ = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
+    let occ = Style::default()
+        .fg(Color::Yellow)
+        .add_modifier(Modifier::BOLD);
     let emp = Style::default().fg(Color::DarkGray);
     let line_col = Style::default().fg(Color::DarkGray);
 
-    let s2 = if game.bases.second.is_some() { occ } else { emp };
+    let s2 = if game.bases.second.is_some() {
+        occ
+    } else {
+        emp
+    };
     let s3 = if game.bases.third.is_some() { occ } else { emp };
     let s1 = if game.bases.first.is_some() { occ } else { emp };
 
     let outs_str: String = (0..3)
-        .map(|i| if i < game.outs { "\u{25cf}" } else { "\u{25cb}" })
+        .map(|i| {
+            if i < game.outs {
+                "\u{25cf}"
+            } else {
+                "\u{25cb}"
+            }
+        })
         .collect::<Vec<_>>()
         .join(" ");
 
     let diamond = vec![
         Line::from(""),
-        Line::from(vec![
-            Span::raw("        "),
-            Span::styled("2B", s2),
-        ]),
+        Line::from(vec![Span::raw("        "), Span::styled("2B", s2)]),
         Line::from(vec![Span::styled("       /  \\", line_col)]),
         Line::from(vec![
             Span::styled("3B", s3),
@@ -518,33 +604,65 @@ fn draw_diamond(f: &mut Frame, game: &GameState, area: Rect) {
 }
 
 fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
-    let panel_height = if cfg!(feature = "advanced-stats") { 6 } else { 5 };
+    let panel_height = if cfg!(feature = "advanced-stats") {
+        6
+    } else {
+        5
+    };
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(panel_height), Constraint::Length(panel_height)])
+        .constraints([
+            Constraint::Length(panel_height),
+            Constraint::Length(panel_height),
+        ])
         .split(area);
 
     // ── Batter panel ───────────────────────────────────────────────────────
     let batter = game.batting_team().current_batter();
     let balls_str: String = (0..4)
-        .map(|i| if i < game.count.balls { "\u{25cf}" } else { "\u{25cb}" })
+        .map(|i| {
+            if i < game.count.balls {
+                "\u{25cf}"
+            } else {
+                "\u{25cb}"
+            }
+        })
         .collect::<Vec<_>>()
         .join(" ");
     let strikes_str: String = (0..3)
-        .map(|i| if i < game.count.strikes { "\u{25cf}" } else { "\u{25cb}" })
+        .map(|i| {
+            if i < game.count.strikes {
+                "\u{25cf}"
+            } else {
+                "\u{25cb}"
+            }
+        })
         .collect::<Vec<_>>()
         .join(" ");
 
     let batter_name_line = if cfg!(feature = "advanced-stats") {
         Line::from(vec![
             Span::styled("Batter:  ", Style::default().fg(Color::DarkGray)),
-            Span::styled(batter.info.name.clone(), Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("  {}", batter.info.avg_display()), Style::default().fg(Color::Cyan)),
+            Span::styled(
+                batter.info.name.clone(),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("  {}", batter.info.avg_display()),
+                Style::default().fg(Color::Cyan),
+            ),
         ])
     } else {
         Line::from(vec![
             Span::styled("Batter:  ", Style::default().fg(Color::DarkGray)),
-            Span::styled(batter.info.name.clone(), Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                batter.info.name.clone(),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ),
         ])
     };
 
@@ -561,8 +679,11 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
             Span::styled(
                 format!(
                     "AB:{} H:{} BB:{} K:{} RBI:{}",
-                    batter.stats.at_bats, batter.stats.hits,
-                    batter.stats.walks, batter.stats.strikeouts, batter.stats.rbi
+                    batter.stats.at_bats,
+                    batter.stats.hits,
+                    batter.stats.walks,
+                    batter.stats.strikeouts,
+                    batter.stats.rbi
                 ),
                 Style::default().fg(Color::DarkGray),
             ),
@@ -574,8 +695,10 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
             Span::styled(
                 format!(
                     "2B:{} 3B:{} HR:{} SB:{}",
-                    batter.stats.doubles, batter.stats.triples,
-                    batter.stats.home_runs, batter.stats.stolen_bases
+                    batter.stats.doubles,
+                    batter.stats.triples,
+                    batter.stats.home_runs,
+                    batter.stats.stolen_bases
                 ),
                 Style::default().fg(Color::DarkGray),
             ),
@@ -585,7 +708,9 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
 
     f.render_widget(
         Paragraph::new(batter_text).block(
-            Block::default().borders(Borders::ALL).border_type(BorderType::Rounded),
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded),
         ),
         chunks[0],
     );
@@ -595,7 +720,12 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
     let mut pitcher_lines = vec![
         Line::from(vec![
             Span::styled("Pitcher: ", Style::default().fg(Color::DarkGray)),
-            Span::styled(pitcher.info.name.clone(), Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                pitcher.info.name.clone(),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(
                 format!("   PC: {}", pitcher.stats.pitch_count),
                 Style::default().fg(Color::Yellow),
@@ -621,8 +751,10 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
             Span::styled(
                 format!(
                     "BB:{}  K:{}  WP:{}  BF:{}",
-                    pitcher.stats.walks, pitcher.stats.strikeouts,
-                    pitcher.stats.wild_pitches, pitcher.stats.batters_faced
+                    pitcher.stats.walks,
+                    pitcher.stats.strikeouts,
+                    pitcher.stats.wild_pitches,
+                    pitcher.stats.batters_faced
                 ),
                 Style::default().fg(Color::DarkGray),
             ),
@@ -640,7 +772,9 @@ fn draw_at_bat_info(f: &mut Frame, game: &GameState, area: Rect) {
 
     f.render_widget(
         Paragraph::new(pitcher_text).block(
-            Block::default().borders(Borders::ALL).border_type(BorderType::Rounded),
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded),
         ),
         chunks[1],
     );
@@ -656,7 +790,8 @@ fn draw_play_log(f: &mut Frame, game: &GameState, scroll: usize, area: Rect) {
         0
     };
 
-    let items: Vec<ListItem> = game.play_log
+    let items: Vec<ListItem> = game
+        .play_log
         .iter()
         .skip(start)
         .take(visible_height)
@@ -666,12 +801,22 @@ fn draw_play_log(f: &mut Frame, game: &GameState, scroll: usize, area: Rect) {
     let title = if total == 0 {
         " Play Log ".to_string()
     } else {
-        format!(" Play Log ({}\u{2013}{} of {}) ", start + 1, (start + visible_height).min(total), total)
+        format!(
+            " Play Log ({}\u{2013}{} of {}) ",
+            start + 1,
+            (start + visible_height).min(total),
+            total
+        )
     };
 
     f.render_widget(
         List::new(items)
-            .block(Block::default().title(title).borders(Borders::ALL).border_type(BorderType::Rounded))
+            .block(
+                Block::default()
+                    .title(title)
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded),
+            )
             .style(Style::default().fg(Color::White)),
         area,
     );
@@ -708,23 +853,45 @@ fn draw_scoring_footer(f: &mut Frame, app: &App, area: Rect) {
 
 fn draw_popups(f: &mut Frame, app: &App, area: Rect) {
     match &app.input_mode {
-        InputMode::FielderInput { result_type, buffer } => {
+        InputMode::FielderInput {
+            result_type,
+            buffer,
+        } => {
             let (title, hint) = match result_type {
-                FielderResultType::Groundout    => (" Groundout ", "Fielder sequence  e.g. 6-3"),
-                FielderResultType::DoublePlay   => (" Double Play ", "Sequence  e.g. 6-4-3"),
-                FielderResultType::Flyout       => (" Flyout ", "Fielder position  e.g. 8"),
-                FielderResultType::Error        => (" Error ", "Fielder position  e.g. 6"),
+                FielderResultType::Groundout => (" Groundout ", "Fielder sequence  e.g. 6-3"),
+                FielderResultType::DoublePlay => (" Double Play ", "Sequence  e.g. 6-4-3"),
+                FielderResultType::Flyout => (" Flyout ", "Fielder position  e.g. 8"),
+                FielderResultType::Error => (" Error ", "Fielder position  e.g. 6"),
                 FielderResultType::SacrificeFly => (" Sac Fly ", "Fielder position  e.g. 9"),
             };
-            draw_input_popup(f, area, title, hint, buffer, "[Enter] confirm  [Esc] cancel");
+            draw_input_popup(
+                f,
+                area,
+                title,
+                hint,
+                buffer,
+                "[Enter] confirm  [Esc] cancel",
+            );
         }
-        InputMode::RbiInput { pending_result, buffer, .. } => {
+        InputMode::RbiInput {
+            pending_result,
+            buffer,
+            ..
+        } => {
             let title = format!(" RBIs \u{2014} {} ", pending_result.display());
-            draw_input_popup(f, area, &title, "Enter 0\u{2013}4", buffer, "[Enter] confirm  [Esc] cancel");
+            draw_input_popup(
+                f,
+                area,
+                &title,
+                "Enter 0\u{2013}4",
+                buffer,
+                "[Enter] confirm  [Esc] cancel",
+            );
         }
         InputMode::PitcherChange { name_buffer } => {
             draw_input_popup(
-                f, area,
+                f,
+                area,
                 " Pitcher Change ",
                 "New pitcher name",
                 name_buffer,
@@ -733,7 +900,8 @@ fn draw_popups(f: &mut Frame, app: &App, area: Rect) {
         }
         InputMode::SavePrompt { buffer } => {
             draw_input_popup(
-                f, area,
+                f,
+                area,
                 " Save Game ",
                 "Enter a name for this save",
                 buffer,
@@ -772,7 +940,12 @@ fn draw_input_popup(
         )),
         Line::from(vec![
             Span::styled("  \u{276f} ", Style::default().fg(Color::Yellow)),
-            Span::styled(buffer, Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                buffer,
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ),
         ]),
         Line::from(""),
         Line::from(Span::styled(
@@ -808,11 +981,11 @@ fn draw_summary(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(4),  // line score
-            Constraint::Min(11),    // away batting
-            Constraint::Min(11),    // home batting
-            Constraint::Min(6),     // pitching
-            Constraint::Length(1),  // footer
+            Constraint::Length(4), // line score
+            Constraint::Min(11),   // away batting
+            Constraint::Min(11),   // home batting
+            Constraint::Min(6),    // pitching
+            Constraint::Length(1), // footer
         ])
         .split(inner);
 
@@ -822,7 +995,10 @@ fn draw_summary(f: &mut Frame, app: &App) {
     draw_summary_pitching(f, game, chunks[3]);
 
     let footer_text = if let Some(msg) = &app.status_message {
-        Line::from(vec![Span::styled(msg.clone(), Style::default().fg(Color::Green))])
+        Line::from(vec![Span::styled(
+            msg.clone(),
+            Style::default().fg(Color::Green),
+        )])
     } else {
         Line::from(vec![
             Span::styled("[E]", Style::default().fg(Color::Yellow)),
@@ -838,9 +1014,16 @@ fn draw_summary_line_score(f: &mut Frame, game: &GameState, area: Rect) {
     let innings = game.inning_scores.len().max(9);
 
     let header_cells: Vec<Cell> = std::iter::once(Cell::from("").style(Style::default()))
-        .chain((1..=innings).map(|i| Cell::from(i.to_string()).style(Style::default().fg(Color::DarkGray))))
+        .chain(
+            (1..=innings)
+                .map(|i| Cell::from(i.to_string()).style(Style::default().fg(Color::DarkGray))),
+        )
         .chain([
-            Cell::from("R").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Cell::from("R").style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Cell::from("H"),
             Cell::from("E"),
         ])
@@ -851,13 +1034,23 @@ fn draw_summary_line_score(f: &mut Frame, game: &GameState, area: Rect) {
     let home_row = Row::new(score_row_cells(game, true, innings));
 
     let mut widths: Vec<Constraint> = vec![Constraint::Length(14)];
-    for _ in 0..innings { widths.push(Constraint::Length(3)); }
-    widths.extend([Constraint::Length(4), Constraint::Length(4), Constraint::Length(4)]);
+    for _ in 0..innings {
+        widths.push(Constraint::Length(3));
+    }
+    widths.extend([
+        Constraint::Length(4),
+        Constraint::Length(4),
+        Constraint::Length(4),
+    ]);
 
     f.render_widget(
         Table::new([away_row, home_row], widths)
             .header(header)
-            .block(Block::default().borders(Borders::BOTTOM).border_style(Style::default().fg(Color::DarkGray))),
+            .block(
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .border_style(Style::default().fg(Color::DarkGray)),
+            ),
         area,
     );
 }
@@ -866,40 +1059,95 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
     let team = if is_home { &game.home } else { &game.away };
 
     if cfg!(feature = "advanced-stats") {
-        let header = Row::new(["Batter", "AB", "R", "H", "2B", "3B", "HR", "RBI", "BB", "K", "SB", "CS"])
-            .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD));
+        let header = Row::new([
+            "Batter", "AB", "R", "H", "2B", "3B", "HR", "RBI", "BB", "K", "SB", "CS",
+        ])
+        .style(
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::BOLD),
+        );
 
-        let mut rows: Vec<Row> = team.lineup.iter().map(|slot| {
-            Row::new([
-                slot.info.name.clone(),
-                slot.stats.at_bats.to_string(),
-                slot.stats.runs.to_string(),
-                slot.stats.hits.to_string(),
-                slot.stats.doubles.to_string(),
-                slot.stats.triples.to_string(),
-                slot.stats.home_runs.to_string(),
-                slot.stats.rbi.to_string(),
-                slot.stats.walks.to_string(),
-                slot.stats.strikeouts.to_string(),
-                slot.stats.stolen_bases.to_string(),
-                slot.stats.caught_stealing.to_string(),
-            ])
-        }).collect();
+        let mut rows: Vec<Row> = team
+            .lineup
+            .iter()
+            .map(|slot| {
+                Row::new([
+                    slot.info.name.clone(),
+                    slot.stats.at_bats.to_string(),
+                    slot.stats.runs.to_string(),
+                    slot.stats.hits.to_string(),
+                    slot.stats.doubles.to_string(),
+                    slot.stats.triples.to_string(),
+                    slot.stats.home_runs.to_string(),
+                    slot.stats.rbi.to_string(),
+                    slot.stats.walks.to_string(),
+                    slot.stats.strikeouts.to_string(),
+                    slot.stats.stolen_bases.to_string(),
+                    slot.stats.caught_stealing.to_string(),
+                ])
+            })
+            .collect();
 
         let totals = Row::new([
             "TOTALS".to_string(),
-            team.lineup.iter().map(|s| s.stats.at_bats as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.runs as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.hits as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.doubles as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.triples as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.home_runs as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.rbi as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.walks as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.strikeouts as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.stolen_bases as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.caught_stealing as u32).sum::<u32>().to_string(),
-        ]).style(Style::default().add_modifier(Modifier::BOLD));
+            team.lineup
+                .iter()
+                .map(|s| s.stats.at_bats as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.runs as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.hits as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.doubles as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.triples as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.home_runs as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.rbi as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.walks as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.strikeouts as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.stolen_bases as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.caught_stealing as u32)
+                .sum::<u32>()
+                .to_string(),
+        ])
+        .style(Style::default().add_modifier(Modifier::BOLD));
         rows.push(totals);
 
         // LOB row (team-level)
@@ -909,89 +1157,144 @@ fn draw_summary_batting(f: &mut Frame, game: &GameState, is_home: bool, area: Re
 
         let widths = [
             Constraint::Min(18),
-            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
-            Constraint::Length(3), Constraint::Length(3), Constraint::Length(3),
-            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
-            Constraint::Length(3), Constraint::Length(3),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(3),
+            Constraint::Length(3),
         ];
 
         f.render_widget(
-            Table::new(rows, widths)
-                .header(header)
-                .block(
-                    Block::default()
-                        .title(format!(" {} Batting ", team.name))
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(team.color.to_color())),
-                ),
+            Table::new(rows, widths).header(header).block(
+                Block::default()
+                    .title(format!(" {} Batting ", team.name))
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(team.color.to_color())),
+            ),
             area,
         );
     } else {
-        let header = Row::new(["Batter", "AB", "R", "H", "RBI", "BB", "K"])
-            .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD));
+        let header = Row::new(["Batter", "AB", "R", "H", "RBI", "BB", "K"]).style(
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::BOLD),
+        );
 
-        let mut rows: Vec<Row> = team.lineup.iter().map(|slot| {
-            Row::new([
-                slot.info.name.clone(),
-                slot.stats.at_bats.to_string(),
-                slot.stats.runs.to_string(),
-                slot.stats.hits.to_string(),
-                slot.stats.rbi.to_string(),
-                slot.stats.walks.to_string(),
-                slot.stats.strikeouts.to_string(),
-            ])
-        }).collect();
+        let mut rows: Vec<Row> = team
+            .lineup
+            .iter()
+            .map(|slot| {
+                Row::new([
+                    slot.info.name.clone(),
+                    slot.stats.at_bats.to_string(),
+                    slot.stats.runs.to_string(),
+                    slot.stats.hits.to_string(),
+                    slot.stats.rbi.to_string(),
+                    slot.stats.walks.to_string(),
+                    slot.stats.strikeouts.to_string(),
+                ])
+            })
+            .collect();
 
         let totals = Row::new([
             "TOTALS".to_string(),
-            team.lineup.iter().map(|s| s.stats.at_bats as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.runs as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.hits as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.rbi as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.walks as u32).sum::<u32>().to_string(),
-            team.lineup.iter().map(|s| s.stats.strikeouts as u32).sum::<u32>().to_string(),
-        ]).style(Style::default().add_modifier(Modifier::BOLD));
+            team.lineup
+                .iter()
+                .map(|s| s.stats.at_bats as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.runs as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.hits as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.rbi as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.walks as u32)
+                .sum::<u32>()
+                .to_string(),
+            team.lineup
+                .iter()
+                .map(|s| s.stats.strikeouts as u32)
+                .sum::<u32>()
+                .to_string(),
+        ])
+        .style(Style::default().add_modifier(Modifier::BOLD));
         rows.push(totals);
 
         let widths = [
             Constraint::Min(20),
-            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
-            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
         ];
 
         f.render_widget(
-            Table::new(rows, widths)
-                .header(header)
-                .block(
-                    Block::default()
-                        .title(format!(" {} Batting ", team.name))
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(team.color.to_color())),
-                ),
+            Table::new(rows, widths).header(header).block(
+                Block::default()
+                    .title(format!(" {} Batting ", team.name))
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(team.color.to_color())),
+            ),
             area,
         );
     }
 }
 
 fn draw_summary_pitching(f: &mut Frame, game: &GameState, area: Rect) {
-    let col_count = if cfg!(feature = "advanced-stats") { 10 } else { 8 };
+    let col_count = if cfg!(feature = "advanced-stats") {
+        10
+    } else {
+        8
+    };
 
     let header = if cfg!(feature = "advanced-stats") {
-        Row::new(["Pitcher", "IP", "H", "R", "ER", "BB", "K", "WP", "BF", "PC"])
-            .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD))
+        Row::new(["Pitcher", "IP", "H", "R", "ER", "BB", "K", "WP", "BF", "PC"]).style(
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::BOLD),
+        )
     } else {
-        Row::new(["Pitcher", "IP", "H", "R", "ER", "BB", "K", "PC"])
-            .style(Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD))
+        Row::new(["Pitcher", "IP", "H", "R", "ER", "BB", "K", "PC"]).style(
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::BOLD),
+        )
     };
 
     let mut rows: Vec<Row> = Vec::new();
 
     for (team, team_game) in [(&game.away, false), (&game.home, true)] {
         rows.push(
-            Row::new(std::iter::once(team.name.clone())
-                .chain(std::iter::repeat(String::new()).take(col_count - 1))
-                .collect::<Vec<_>>())
-                .style(Style::default().fg(team.color.to_color()).add_modifier(Modifier::BOLD)),
+            Row::new(
+                std::iter::once(team.name.clone())
+                    .chain(std::iter::repeat(String::new()).take(col_count - 1))
+                    .collect::<Vec<_>>(),
+            )
+            .style(
+                Style::default()
+                    .fg(team.color.to_color())
+                    .add_modifier(Modifier::BOLD),
+            ),
         );
         for p in &team.pitchers {
             let name = match p.decision {
@@ -1025,35 +1328,48 @@ fn draw_summary_pitching(f: &mut Frame, game: &GameState, area: Rect) {
             }
         }
         if !team_game {
-            rows.push(Row::new(vec![""; col_count].into_iter().map(String::from).collect::<Vec<_>>()));
+            rows.push(Row::new(
+                vec![""; col_count]
+                    .into_iter()
+                    .map(String::from)
+                    .collect::<Vec<_>>(),
+            ));
         }
     }
 
     let widths: Vec<Constraint> = if cfg!(feature = "advanced-stats") {
         vec![
             Constraint::Min(22),
-            Constraint::Length(5), Constraint::Length(4), Constraint::Length(4),
-            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
-            Constraint::Length(3), Constraint::Length(3), Constraint::Length(5),
+            Constraint::Length(5),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(5),
         ]
     } else {
         vec![
             Constraint::Min(22),
-            Constraint::Length(5), Constraint::Length(4), Constraint::Length(4),
-            Constraint::Length(4), Constraint::Length(4), Constraint::Length(4),
+            Constraint::Length(5),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
             Constraint::Length(5),
         ]
     };
 
     f.render_widget(
-        Table::new(rows, widths)
-            .header(header)
-            .block(
-                Block::default()
-                    .title(" Pitching ")
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::DarkGray)),
-            ),
+        Table::new(rows, widths).header(header).block(
+            Block::default()
+                .title(" Pitching ")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::DarkGray)),
+        ),
         area,
     );
 }
@@ -1092,8 +1408,11 @@ fn draw_load_screen(f: &mut Frame, app: &App) {
             .enumerate()
             .map(|(i, slot)| {
                 if i == app.load_cursor {
-                    ListItem::new(format!("  \u{276f} {}", slot.display))
-                        .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+                    ListItem::new(format!("  \u{276f} {}", slot.display)).style(
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::BOLD),
+                    )
                 } else {
                     ListItem::new(format!("    {}", slot.display))
                         .style(Style::default().fg(Color::White))
@@ -1130,7 +1449,9 @@ fn draw_load_screen(f: &mut Frame, app: &App) {
 // ── Replay Screen ─────────────────────────────────────────────────────────
 
 fn draw_replay(f: &mut Frame, app: &App) {
-    let Some(game) = app.replay_game() else { return };
+    let Some(game) = app.replay_game() else {
+        return;
+    };
     let area = f.area();
 
     let chunks = Layout::default()
@@ -1170,7 +1491,9 @@ fn draw_replay_footer(f: &mut Frame, app: &App, area: Rect) {
             ),
             Span::styled(
                 &position_text,
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
                 "   [\u{2192}/L] next \u{25b6}",

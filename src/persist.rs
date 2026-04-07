@@ -55,7 +55,11 @@ pub fn saves_dir() -> PathBuf {
 ///
 /// # Errors
 /// Returns an error string if the directory cannot be created or the file cannot be written.
-pub fn save_game_with_name(game: &GameState, name: &str, snapshots: &[GameState]) -> Result<String, String> {
+pub fn save_game_with_name(
+    game: &GameState,
+    name: &str,
+    snapshots: &[GameState],
+) -> Result<String, String> {
     save_game_with_name_in_dir(game, name, snapshots, &saves_dir())
 }
 
@@ -65,7 +69,12 @@ pub fn save_game_with_name(game: &GameState, name: &str, snapshots: &[GameState]
 ///
 /// # Errors
 /// Returns an error string if the directory cannot be created or the file cannot be written.
-pub fn save_game_with_name_in_dir(game: &GameState, name: &str, snapshots: &[GameState], dir: &Path) -> Result<String, String> {
+pub fn save_game_with_name_in_dir(
+    game: &GameState,
+    name: &str,
+    snapshots: &[GameState],
+    dir: &Path,
+) -> Result<String, String> {
     fs::create_dir_all(dir).map_err(|e| format!("Cannot create save dir: {}", e))?;
 
     let secs = SystemTime::now()
@@ -82,19 +91,28 @@ pub fn save_game_with_name_in_dir(game: &GameState, name: &str, snapshots: &[Gam
 /// Save to an explicit directory with an auto-generated name (useful for tests).
 #[cfg(test)]
 pub fn save_game_to_dir(game: &GameState, dir: &Path) -> Result<String, String> {
-    let name = format!("{}-vs-{}", sanitize(&game.away.name), sanitize(&game.home.name));
+    let name = format!(
+        "{}-vs-{}",
+        sanitize(&game.away.name),
+        sanitize(&game.home.name)
+    );
     save_game_with_name_in_dir(game, &name, &[], dir)
 }
 
-fn write_save_file(game: &GameState, saved_at_secs: u64, snapshots: &[GameState], path: &Path) -> Result<(), String> {
+fn write_save_file(
+    game: &GameState,
+    saved_at_secs: u64,
+    snapshots: &[GameState],
+    path: &Path,
+) -> Result<(), String> {
     let save = SaveFile {
         saved_at_secs,
         advanced_stats: cfg!(feature = "advanced-stats"),
         game: game.clone(),
         snapshots: snapshots.to_vec(),
     };
-    let json = serde_json::to_string_pretty(&save)
-        .map_err(|e| format!("Serialization error: {}", e))?;
+    let json =
+        serde_json::to_string_pretty(&save).map_err(|e| format!("Serialization error: {}", e))?;
     fs::write(path, json).map_err(|e| format!("Write error: {}", e))
 }
 
@@ -119,25 +137,20 @@ pub fn load_game(path: &Path) -> Result<GameState, String> {
 /// # Errors
 /// Returns an error string if the file cannot be read, parsed, or has a feature mismatch.
 pub fn load_game_full(path: &Path) -> Result<(GameState, Vec<GameState>), String> {
-    let content = fs::read_to_string(path)
-        .map_err(|e| format!("Read error: {}", e))?;
-    let save: SaveFile = serde_json::from_str(&content)
-        .map_err(|e| format!("Parse error: {}", e))?;
+    let content = fs::read_to_string(path).map_err(|e| format!("Read error: {}", e))?;
+    let save: SaveFile =
+        serde_json::from_str(&content).map_err(|e| format!("Parse error: {}", e))?;
 
     let current = cfg!(feature = "advanced-stats");
     if save.advanced_stats && !current {
-        return Err(
-            "This save was created with advanced-stats enabled. \
+        return Err("This save was created with advanced-stats enabled. \
              Recompile with: cargo build --features advanced-stats"
-                .into(),
-        );
+            .into());
     }
     if !save.advanced_stats && current {
-        return Err(
-            "This save was created without advanced-stats. \
+        return Err("This save was created without advanced-stats. \
              Recompile without the advanced-stats feature to load it."
-                .into(),
-        );
+            .into());
     }
 
     Ok((save.game, save.snapshots))
@@ -184,7 +197,11 @@ fn slot_display(path: &Path) -> String {
     if let Ok(content) = fs::read_to_string(path) {
         if let Ok(save) = serde_json::from_str::<SaveFile>(&content) {
             let g = &save.game;
-            let half = if g.half == crate::game::Half::Top { "Top" } else { "Bot" };
+            let half = if g.half == crate::game::Half::Top {
+                "Top"
+            } else {
+                "Bot"
+            };
             return format!(
                 "{} vs {}  |  {} {}  |  {}-{}",
                 g.away.name,
@@ -218,12 +235,22 @@ fn sanitize_filename(name: &str) -> String {
     let s: String = name
         .trim()
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
         .take(64)
         .collect();
     // Collapse consecutive hyphens and strip leading/trailing ones
     let s = s.trim_matches('-').to_string();
-    if s.is_empty() { "save".to_string() } else { s }
+    if s.is_empty() {
+        "save".to_string()
+    } else {
+        s
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────
@@ -338,10 +365,7 @@ mod tests {
         let filename = save_game_to_dir(&game, &dir).unwrap();
         let loaded = load_game(&dir.join(&filename)).unwrap();
 
-        assert_eq!(
-            loaded.home.current_pitcher().stats.strikeouts,
-            2
-        );
+        assert_eq!(loaded.home.current_pitcher().stats.strikeouts, 2);
     }
 
     #[test]
@@ -368,8 +392,16 @@ mod tests {
         save_game_to_dir(&game, &dir).unwrap();
 
         let slots = list_saves_in_dir(&dir);
-        assert!(slots[0].display.contains("Visitors"), "display: {}", slots[0].display);
-        assert!(slots[0].display.contains("Homers"), "display: {}", slots[0].display);
+        assert!(
+            slots[0].display.contains("Visitors"),
+            "display: {}",
+            slots[0].display
+        );
+        assert!(
+            slots[0].display.contains("Homers"),
+            "display: {}",
+            slots[0].display
+        );
     }
 
     #[test]
@@ -406,7 +438,11 @@ mod tests {
         let game = make_game();
         let filename = save_game_to_dir(&game, &dir).unwrap();
 
-        assert!(filename.starts_with("Visitors-vs-Homers"), "filename: {}", filename);
+        assert!(
+            filename.starts_with("Visitors-vs-Homers"),
+            "filename: {}",
+            filename
+        );
         assert!(filename.ends_with(".json"), "filename: {}", filename);
     }
 

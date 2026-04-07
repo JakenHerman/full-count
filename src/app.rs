@@ -1,6 +1,8 @@
 use thiserror::Error;
 
-use crate::game::{AtBatResult, BatterGameStats, BatterInfo, GameState, LineupSlot, PitcherInfo, Team, TeamColor};
+use crate::game::{
+    AtBatResult, BatterGameStats, BatterInfo, GameState, LineupSlot, PitcherInfo, Team, TeamColor,
+};
 use crate::persist;
 
 // ── Errors ─────────────────────────────────────────────────────────────────
@@ -57,7 +59,12 @@ pub enum AdvanceStage {
     /// `from` has been selected; now waiting for the destination base.
     SelectTo { from: u8 },
     /// Runner has been moved; now asking why.
-    SelectReason { from: u8, to: u8, scored: bool, runner_idx: Option<usize> },
+    SelectReason {
+        from: u8,
+        to: u8,
+        scored: bool,
+        runner_idx: Option<usize>,
+    },
 }
 
 /// The current input mode on the Scoring screen, controlling how keystrokes are interpreted.
@@ -146,20 +153,20 @@ pub enum SetupSection {
 impl SetupSection {
     /// Returns the last focusable field in the away lineup (depends on `season-avg` feature).
     fn last_away_field() -> SetupSection {
-                if cfg!(feature = "advanced-stats") {
-                    SetupSection::AwayLineup(8, LineupField::Avg)
-                } else {
-                    SetupSection::AwayLineup(8, LineupField::Name)
-                }
+        if cfg!(feature = "advanced-stats") {
+            SetupSection::AwayLineup(8, LineupField::Avg)
+        } else {
+            SetupSection::AwayLineup(8, LineupField::Name)
+        }
     }
 
     /// Returns the last focusable field in the home lineup (depends on `season-avg` feature).
     fn last_home_field() -> SetupSection {
-                if cfg!(feature = "advanced-stats") {
-                    SetupSection::HomeLineup(8, LineupField::Avg)
-                } else {
-                    SetupSection::HomeLineup(8, LineupField::Name)
-                }
+        if cfg!(feature = "advanced-stats") {
+            SetupSection::HomeLineup(8, LineupField::Avg)
+        } else {
+            SetupSection::HomeLineup(8, LineupField::Name)
+        }
     }
 
     /// Returns the next setup field in tab order, wrapping from the last field back to the first.
@@ -313,7 +320,10 @@ impl App {
 
     /// Returns `true` when the cursor is on a color-picker field.
     pub fn is_color_field(&self) -> bool {
-        matches!(self.setup_cursor, SetupSection::AwayColor | SetupSection::HomeColor)
+        matches!(
+            self.setup_cursor,
+            SetupSection::AwayColor | SetupSection::HomeColor
+        )
     }
 
     /// Cycles the focused team color forward.
@@ -344,7 +354,8 @@ impl App {
         }
         let is_avg = matches!(
             &self.setup_cursor,
-            SetupSection::AwayLineup(_, LineupField::Avg) | SetupSection::HomeLineup(_, LineupField::Avg)
+            SetupSection::AwayLineup(_, LineupField::Avg)
+                | SetupSection::HomeLineup(_, LineupField::Avg)
         );
         if is_avg {
             if c.is_ascii_digit() || c == '.' {
@@ -371,9 +382,13 @@ impl App {
             SetupSection::AwayColor | SetupSection::HomeColor => {
                 unreachable!("color fields are not text fields")
             }
-            SetupSection::AwayLineup(row, LineupField::Name) => &mut self.setup.away_lineup[row].name,
+            SetupSection::AwayLineup(row, LineupField::Name) => {
+                &mut self.setup.away_lineup[row].name
+            }
             SetupSection::AwayLineup(row, LineupField::Avg) => &mut self.setup.away_lineup[row].avg,
-            SetupSection::HomeLineup(row, LineupField::Name) => &mut self.setup.home_lineup[row].name,
+            SetupSection::HomeLineup(row, LineupField::Name) => {
+                &mut self.setup.home_lineup[row].name
+            }
             SetupSection::HomeLineup(row, LineupField::Avg) => &mut self.setup.home_lineup[row].avg,
             SetupSection::AwayStarter => &mut self.setup.away_starter,
             SetupSection::HomeStarter => &mut self.setup.home_starter,
@@ -405,13 +420,17 @@ impl App {
             self.setup.away_name.trim().to_string(),
             self.setup.away_color,
             away_lineup,
-            PitcherInfo { name: self.setup.away_starter.trim().to_string() },
+            PitcherInfo {
+                name: self.setup.away_starter.trim().to_string(),
+            },
         );
         let home = Team::new(
             self.setup.home_name.trim().to_string(),
             self.setup.home_color,
             home_lineup,
-            PitcherInfo { name: self.setup.home_starter.trim().to_string() },
+            PitcherInfo {
+                name: self.setup.home_starter.trim().to_string(),
+            },
         );
 
         let game = GameState::new(away, home);
@@ -526,7 +545,9 @@ impl App {
         let path = self.load_slots[self.load_cursor].path.clone();
         let (game, snapshots) = persist::load_game_full(&path)?;
         if snapshots.is_empty() {
-            return Err("This save has no replay data. Re-save during scoring to capture it.".into());
+            return Err(
+                "This save has no replay data. Re-save during scoring to capture it.".into(),
+            );
         }
         self.replay_snapshots = snapshots;
         self.replay_cursor = 0;
@@ -582,7 +603,10 @@ fn build_lineup(rows: &[PlayerSetupRow], prefix: &str) -> Vec<LineupSlot> {
                 row.name.trim().to_string()
             };
             LineupSlot {
-                info: BatterInfo { name, season_avg: parse_avg(&row.avg) },
+                info: BatterInfo {
+                    name,
+                    season_avg: parse_avg(&row.avg),
+                },
                 stats: BatterGameStats::default(),
             }
         })
@@ -752,7 +776,9 @@ mod tests {
     fn test_start_game_uses_default_player_names() {
         let mut app = filled_setup();
         // Leave all home lineup names empty
-        for i in 0..9 { app.setup.home_lineup[i].name = "".into(); }
+        for i in 0..9 {
+            app.setup.home_lineup[i].name = "".into();
+        }
         app.start_game().unwrap();
         let game = app.game.unwrap();
         assert_eq!(game.home.lineup[0].info.name, "Home #1");
@@ -813,7 +839,9 @@ mod tests {
     fn test_undo_resets_input_mode() {
         let mut app = make_app_with_game();
         app.push_undo();
-        app.input_mode = InputMode::PitcherChange { name_buffer: "X".into() };
+        app.input_mode = InputMode::PitcherChange {
+            name_buffer: "X".into(),
+        };
         app.undo();
         assert_eq!(app.input_mode, InputMode::WaitingForResult);
     }
@@ -821,7 +849,9 @@ mod tests {
     #[test]
     fn test_undo_stack_capped_at_100() {
         let mut app = make_app_with_game();
-        for _ in 0..110 { app.push_undo(); }
+        for _ in 0..110 {
+            app.push_undo();
+        }
         assert_eq!(app.undo_stack.len(), 100);
     }
 
@@ -849,7 +879,10 @@ mod tests {
 
     #[test]
     fn test_setup_section_next_sequential() {
-        assert_eq!(SetupSection::AwayTeamName.next(), SetupSection::HomeTeamName);
+        assert_eq!(
+            SetupSection::AwayTeamName.next(),
+            SetupSection::HomeTeamName
+        );
         assert_eq!(SetupSection::HomeTeamName.next(), SetupSection::AwayColor);
         assert_eq!(SetupSection::AwayColor.next(), SetupSection::HomeColor);
         assert_eq!(
@@ -861,7 +894,10 @@ mod tests {
 
     #[test]
     fn test_setup_section_prev_sequential() {
-        assert_eq!(SetupSection::HomeTeamName.prev(), SetupSection::AwayTeamName);
+        assert_eq!(
+            SetupSection::HomeTeamName.prev(),
+            SetupSection::AwayTeamName
+        );
         assert_eq!(SetupSection::AwayColor.prev(), SetupSection::HomeTeamName);
         assert_eq!(SetupSection::HomeColor.prev(), SetupSection::AwayColor);
         assert_eq!(

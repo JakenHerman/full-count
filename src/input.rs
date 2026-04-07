@@ -1,6 +1,8 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
-use crate::app::{AdvanceReason, AdvanceStage, App, AppScreen, FielderResultType, InputMode, SetupSection};
+use crate::app::{
+    AdvanceReason, AdvanceStage, App, AppScreen, FielderResultType, InputMode, SetupSection,
+};
 use crate::game::{AtBatResult, InningOutcome, PitchEvent, PitchOutcome, PitcherInfo};
 
 /// Routes a crossterm [`Event`] to the appropriate screen handler.
@@ -104,7 +106,9 @@ fn handle_scoring_key(app: &mut App, key: KeyEvent) {
     // F2 opens the save-name prompt
     if key.code == KeyCode::F(2) {
         if !matches!(app.input_mode, InputMode::SavePrompt { .. }) {
-            app.input_mode = InputMode::SavePrompt { buffer: String::new() };
+            app.input_mode = InputMode::SavePrompt {
+                buffer: String::new(),
+            };
         }
         return;
     }
@@ -183,18 +187,26 @@ fn handle_waiting(app: &mut App, key: KeyEvent) {
         KeyCode::Char('p') | KeyCode::Char('P') => rbi_prompt(app, AtBatResult::HitByPitch),
 
         // ── Fielder-sequence results ──────────────────────────────────────
-        KeyCode::Char('g') | KeyCode::Char('G') => fielder_prompt(app, FielderResultType::Groundout),
-        KeyCode::Char('d') | KeyCode::Char('D') => fielder_prompt(app, FielderResultType::DoublePlay),
+        KeyCode::Char('g') | KeyCode::Char('G') => {
+            fielder_prompt(app, FielderResultType::Groundout)
+        }
+        KeyCode::Char('d') | KeyCode::Char('D') => {
+            fielder_prompt(app, FielderResultType::DoublePlay)
+        }
         KeyCode::Char('o') | KeyCode::Char('O') => fielder_prompt(app, FielderResultType::Flyout),
         KeyCode::Char('e') | KeyCode::Char('E') => fielder_prompt(app, FielderResultType::Error),
-        KeyCode::Char('v') | KeyCode::Char('V') => fielder_prompt(app, FielderResultType::SacrificeFly),
+        KeyCode::Char('v') | KeyCode::Char('V') => {
+            fielder_prompt(app, FielderResultType::SacrificeFly)
+        }
 
         // ── Fielder's choice → ask for RBI ───────────────────────────────
         KeyCode::Char('c') | KeyCode::Char('C') => rbi_prompt(app, AtBatResult::FieldersChoice),
 
         // ── Pitcher change ────────────────────────────────────────────────
         KeyCode::Tab => {
-            app.input_mode = InputMode::PitcherChange { name_buffer: String::new() };
+            app.input_mode = InputMode::PitcherChange {
+                name_buffer: String::new(),
+            };
         }
 
         // ── Manual runner advance ─────────────────────────────────────────
@@ -236,7 +248,11 @@ fn handle_waiting(app: &mut App, key: KeyEvent) {
 }
 
 fn handle_fielder_input(app: &mut App, key: KeyEvent) {
-    if let InputMode::FielderInput { result_type, buffer } = app.input_mode.clone() {
+    if let InputMode::FielderInput {
+        result_type,
+        buffer,
+    } = app.input_mode.clone()
+    {
         match key.code {
             KeyCode::Esc => {
                 app.input_mode = InputMode::WaitingForResult;
@@ -244,12 +260,18 @@ fn handle_fielder_input(app: &mut App, key: KeyEvent) {
             KeyCode::Backspace => {
                 let mut buf = buffer;
                 buf.pop();
-                app.input_mode = InputMode::FielderInput { result_type, buffer: buf };
+                app.input_mode = InputMode::FielderInput {
+                    result_type,
+                    buffer: buf,
+                };
             }
             KeyCode::Char(c) if c.is_ascii_digit() || c == '-' => {
                 let mut buf = buffer;
                 buf.push(c);
-                app.input_mode = InputMode::FielderInput { result_type, buffer: buf };
+                app.input_mode = InputMode::FielderInput {
+                    result_type,
+                    buffer: buf,
+                };
             }
             KeyCode::Enter => {
                 match parse_fielder_sequence(&buffer, &result_type) {
@@ -279,7 +301,12 @@ fn handle_fielder_input(app: &mut App, key: KeyEvent) {
 }
 
 fn handle_rbi_input(app: &mut App, key: KeyEvent) {
-    if let InputMode::RbiInput { pending_result, buffer, from_pitch } = app.input_mode.clone() {
+    if let InputMode::RbiInput {
+        pending_result,
+        buffer,
+        from_pitch,
+    } = app.input_mode.clone()
+    {
         match key.code {
             KeyCode::Esc => {
                 app.input_mode = InputMode::WaitingForResult;
@@ -294,7 +321,11 @@ fn handle_rbi_input(app: &mut App, key: KeyEvent) {
             KeyCode::Backspace => {
                 let mut buf = buffer;
                 buf.pop();
-                app.input_mode = InputMode::RbiInput { pending_result, buffer: buf, from_pitch };
+                app.input_mode = InputMode::RbiInput {
+                    pending_result,
+                    buffer: buf,
+                    from_pitch,
+                };
             }
             KeyCode::Enter => {
                 // Only push an undo snapshot if this wasn't triggered by a pitch
@@ -367,9 +398,12 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
                         });
                         app.push_undo();
                         let scored = app.game_mut().map_or(false, |g| g.advance_runner(from, to));
-                        app.input_mode = InputMode::RunnerAdvance(
-                            AdvanceStage::SelectReason { from, to, scored, runner_idx },
-                        );
+                        app.input_mode = InputMode::RunnerAdvance(AdvanceStage::SelectReason {
+                            from,
+                            to,
+                            scored,
+                            runner_idx,
+                        });
                         app.set_status(
                             "Reason: [S]tolen base  [C]aught stealing  [W]ild pitch  [P]assed ball  [B]alk  [O]ther",
                         );
@@ -383,9 +417,12 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
                         });
                         app.push_undo();
                         let scored = app.game_mut().map_or(false, |g| g.advance_runner(from, 4));
-                        app.input_mode = InputMode::RunnerAdvance(
-                            AdvanceStage::SelectReason { from, to: 4, scored, runner_idx },
-                        );
+                        app.input_mode = InputMode::RunnerAdvance(AdvanceStage::SelectReason {
+                            from,
+                            to: 4,
+                            scored,
+                            runner_idx,
+                        });
                         app.set_status(
                             "Reason: [S]tolen base  [C]aught stealing  [W]ild pitch  [P]assed ball  [B]alk  [O]ther",
                         );
@@ -393,7 +430,12 @@ fn handle_runner_advance(app: &mut App, key: KeyEvent) {
                     _ => {}
                 }
             }
-            AdvanceStage::SelectReason { from: _, to, scored: _, runner_idx } => {
+            AdvanceStage::SelectReason {
+                from: _,
+                to,
+                scored: _,
+                runner_idx,
+            } => {
                 let to = *to;
                 let runner_idx = *runner_idx;
                 let reason = match key.code {
@@ -438,12 +480,17 @@ fn apply_advance_reason(
             InningOutcome::Continue
         }
         AdvanceReason::CaughtStealing => {
-            let Ok(game) = app.game_mut() else { return InningOutcome::Continue };
+            let Ok(game) = app.game_mut() else {
+                return InningOutcome::Continue;
+            };
             game.record_caught_stealing(runner_idx, to_base)
         }
         AdvanceReason::WildPitch => {
             if let Ok(game) = app.game_mut() {
-                game.fielding_team_mut().current_pitcher_mut().stats.wild_pitches += 1;
+                game.fielding_team_mut()
+                    .current_pitcher_mut()
+                    .stats
+                    .wild_pitches += 1;
             }
             InningOutcome::Continue
         }
@@ -499,21 +546,17 @@ fn handle_load_key(app: &mut App, key: KeyEvent) {
                 app.load_cursor = app.load_slots.len() - 1;
             }
         }
-        KeyCode::Enter => {
-            match app.load_selected() {
-                Ok(()) => app.set_status("Game loaded. Resume scoring."),
-                Err(e) => {
-                    app.screen = crate::app::AppScreen::Setup;
-                    app.set_status(e);
-                }
+        KeyCode::Enter => match app.load_selected() {
+            Ok(()) => app.set_status("Game loaded. Resume scoring."),
+            Err(e) => {
+                app.screen = crate::app::AppScreen::Setup;
+                app.set_status(e);
             }
-        }
-        KeyCode::Char('r') | KeyCode::Char('R') => {
-            match app.load_selected_for_replay() {
-                Ok(()) => {}
-                Err(e) => app.set_status(e),
-            }
-        }
+        },
+        KeyCode::Char('r') | KeyCode::Char('R') => match app.load_selected_for_replay() {
+            Ok(()) => {}
+            Err(e) => app.set_status(e),
+        },
         _ => {}
     }
 }
@@ -537,15 +580,13 @@ fn handle_replay_key(app: &mut App, key: KeyEvent) {
 
 fn handle_summary_key(app: &mut App, key: KeyEvent) {
     match key.code {
-        KeyCode::Char('e') | KeyCode::Char('E') => {
-            match app.game() {
-                Ok(game) => match crate::export::export_html(game) {
-                    Ok(path) => app.set_status(format!("Exported: {}", path.display())),
-                    Err(e) => app.set_status(format!("Export failed: {e}")),
-                },
-                Err(_) => {}
-            }
-        }
+        KeyCode::Char('e') | KeyCode::Char('E') => match app.game() {
+            Ok(game) => match crate::export::export_html(game) {
+                Ok(path) => app.set_status(format!("Exported: {}", path.display())),
+                Err(e) => app.set_status(format!("Export failed: {e}")),
+            },
+            Err(_) => {}
+        },
         KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
             app.should_quit = true;
         }
@@ -598,16 +639,16 @@ fn update_text_buffer(buf: String, key: KeyCode) -> Option<String> {
     }
 }
 
-fn parse_fielder_sequence(input: &str, result_type: &FielderResultType) -> Result<AtBatResult, String> {
+fn parse_fielder_sequence(
+    input: &str,
+    result_type: &FielderResultType,
+) -> Result<AtBatResult, String> {
     let input = input.trim();
     if input.is_empty() {
         return Err("Enter fielder position(s) (e.g. 6-4-3)".into());
     }
 
-    let positions: Result<Vec<u8>, _> = input
-        .split('-')
-        .map(|s| s.trim().parse::<u8>())
-        .collect();
+    let positions: Result<Vec<u8>, _> = input.split('-').map(|s| s.trim().parse::<u8>()).collect();
 
     let positions = positions.map_err(|_| "Invalid position — use digits 1–9".to_string())?;
 
@@ -640,9 +681,7 @@ fn parse_fielder_sequence(input: &str, result_type: &FielderResultType) -> Resul
             }
             Ok(AtBatResult::DoublePlay(positions))
         }
-        FielderResultType::Groundout => {
-            Ok(AtBatResult::Groundout(positions))
-        }
+        FielderResultType::Groundout => Ok(AtBatResult::Groundout(positions)),
     }
 }
 

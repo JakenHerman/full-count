@@ -90,21 +90,21 @@ impl TeamColor {
     /// Maps to a CSS hex color string for HTML export.
     pub fn to_hex(self) -> &'static str {
         match self {
-            TeamColor::Red     => "#dc143c",
-            TeamColor::Orange  => "#eb6e1f",
-            TeamColor::Gold    => "#fdb827",
-            TeamColor::Yellow  => "#f5c800",
-            TeamColor::Green   => "#228b22",
-            TeamColor::Teal    => "#008080",
-            TeamColor::Cyan    => "#0097a7",
-            TeamColor::Blue    => "#1565c0",
-            TeamColor::Navy    => "#003087",
-            TeamColor::Purple  => "#68399a",
+            TeamColor::Red => "#dc143c",
+            TeamColor::Orange => "#eb6e1f",
+            TeamColor::Gold => "#fdb827",
+            TeamColor::Yellow => "#f5c800",
+            TeamColor::Green => "#228b22",
+            TeamColor::Teal => "#008080",
+            TeamColor::Cyan => "#0097a7",
+            TeamColor::Blue => "#1565c0",
+            TeamColor::Navy => "#003087",
+            TeamColor::Purple => "#68399a",
             TeamColor::Magenta => "#c2185b",
-            TeamColor::Brown   => "#a56e37",
-            TeamColor::Black   => "#1a1a1a",
-            TeamColor::Gray    => "#757575",
-            TeamColor::White   => "#e0e0e0",
+            TeamColor::Brown => "#a56e37",
+            TeamColor::Black => "#1a1a1a",
+            TeamColor::Gray => "#757575",
+            TeamColor::White => "#e0e0e0",
         }
     }
 
@@ -115,21 +115,21 @@ impl TeamColor {
     pub fn to_color(self) -> ratatui::style::Color {
         use ratatui::style::Color;
         match self {
-            TeamColor::Red     => Color::Red,
-            TeamColor::Orange  => Color::Rgb(235, 110, 31),   // Astros orange
-            TeamColor::Gold    => Color::Rgb(253, 184, 39),   // Pirates gold
-            TeamColor::Yellow  => Color::Yellow,
-            TeamColor::Green   => Color::Green,
-            TeamColor::Teal    => Color::Rgb(0, 128, 128),    // Mariners teal
-            TeamColor::Cyan    => Color::Cyan,
-            TeamColor::Blue    => Color::Blue,
-            TeamColor::Navy    => Color::Rgb(0, 48, 135),     // Yankees navy
-            TeamColor::Purple  => Color::Rgb(104, 58, 150),   // Rockies purple
+            TeamColor::Red => Color::Red,
+            TeamColor::Orange => Color::Rgb(235, 110, 31), // Astros orange
+            TeamColor::Gold => Color::Rgb(253, 184, 39),   // Pirates gold
+            TeamColor::Yellow => Color::Yellow,
+            TeamColor::Green => Color::Green,
+            TeamColor::Teal => Color::Rgb(0, 128, 128), // Mariners teal
+            TeamColor::Cyan => Color::Cyan,
+            TeamColor::Blue => Color::Blue,
+            TeamColor::Navy => Color::Rgb(0, 48, 135), // Yankees navy
+            TeamColor::Purple => Color::Rgb(104, 58, 150), // Rockies purple
             TeamColor::Magenta => Color::Magenta,
-            TeamColor::Brown   => Color::Rgb(165, 110, 55),   // Padres brown
-            TeamColor::Black   => Color::DarkGray,            // visible on dark backgrounds
-            TeamColor::Gray    => Color::Gray,
-            TeamColor::White   => Color::White,
+            TeamColor::Brown => Color::Rgb(165, 110, 55), // Padres brown
+            TeamColor::Black => Color::DarkGray,          // visible on dark backgrounds
+            TeamColor::Gray => Color::Gray,
+            TeamColor::White => Color::White,
         }
     }
 }
@@ -234,7 +234,10 @@ impl AtBatResult {
 }
 
 fn seq_display(seq: &[u8]) -> String {
-    seq.iter().map(|n| n.to_string()).collect::<Vec<_>>().join("-")
+    seq.iter()
+        .map(|n| n.to_string())
+        .collect::<Vec<_>>()
+        .join("-")
 }
 
 // ── Game stats ─────────────────────────────────────────────────────────────
@@ -459,9 +462,18 @@ impl Bases {
         };
         if let Some(idx) = runner {
             match to {
-                1 => { self.first = Some(idx); false }
-                2 => { self.second = Some(idx); false }
-                3 => { self.third = Some(idx); false }
+                1 => {
+                    self.first = Some(idx);
+                    false
+                }
+                2 => {
+                    self.second = Some(idx);
+                    false
+                }
+                3 => {
+                    self.third = Some(idx);
+                    false
+                }
                 4 => true,
                 _ => false,
             }
@@ -516,17 +528,22 @@ pub struct Team {
     pub name: String,
     #[serde(default)]
     pub color: TeamColor,
-    pub lineup: Vec<LineupSlot>,              // always 9 entries
+    pub lineup: Vec<LineupSlot>, // always 9 entries
     pub pitchers: Vec<PitcherAppearance>,
     pub current_pitcher_idx: usize,
-    pub batting_order_pos: usize,             // 0–8, wraps mod 9
+    pub batting_order_pos: usize, // 0–8, wraps mod 9
     #[serde(default)]
     pub left_on_base: u8,
 }
 
 impl Team {
     /// Creates a team with a 9-player lineup, a color, and a single starting pitcher.
-    pub fn new(name: String, color: TeamColor, lineup: Vec<LineupSlot>, starter: PitcherInfo) -> Self {
+    pub fn new(
+        name: String,
+        color: TeamColor,
+        lineup: Vec<LineupSlot>,
+        starter: PitcherInfo,
+    ) -> Self {
         Team {
             name,
             color,
@@ -686,22 +703,38 @@ impl GameState {
 
     /// Returns the team currently at bat (away in the top half, home in the bottom).
     pub fn batting_team(&self) -> &Team {
-        if self.half == Half::Top { &self.away } else { &self.home }
+        if self.half == Half::Top {
+            &self.away
+        } else {
+            &self.home
+        }
     }
 
     /// Returns a mutable reference to the team currently at bat.
     pub fn batting_team_mut(&mut self) -> &mut Team {
-        if self.half == Half::Top { &mut self.away } else { &mut self.home }
+        if self.half == Half::Top {
+            &mut self.away
+        } else {
+            &mut self.home
+        }
     }
 
     /// Returns the team currently in the field.
     pub fn fielding_team(&self) -> &Team {
-        if self.half == Half::Top { &self.home } else { &self.away }
+        if self.half == Half::Top {
+            &self.home
+        } else {
+            &self.away
+        }
     }
 
     /// Returns a mutable reference to the team currently in the field.
     pub fn fielding_team_mut(&mut self) -> &mut Team {
-        if self.half == Half::Top { &mut self.home } else { &mut self.away }
+        if self.half == Half::Top {
+            &mut self.home
+        } else {
+            &mut self.away
+        }
     }
 
     // ── Score totals ───────────────────────────────────────────────────────
@@ -717,9 +750,13 @@ impl GameState {
     }
 
     /// Returns the total hits recorded by the away team's lineup.
-    pub fn away_total_hits(&self) -> u8 { self.away.total_hits() }
+    pub fn away_total_hits(&self) -> u8 {
+        self.away.total_hits()
+    }
     /// Returns the total hits recorded by the home team's lineup.
-    pub fn home_total_hits(&self) -> u8 { self.home.total_hits() }
+    pub fn home_total_hits(&self) -> u8 {
+        self.home.total_hits()
+    }
 
     // ── Pitch processing ───────────────────────────────────────────────────
 
@@ -728,13 +765,24 @@ impl GameState {
     /// Returns [`PitchOutcome::WalkForced`] on the fourth ball, [`PitchOutcome::StrikeoutForced`]
     /// on the third strike, or [`PitchOutcome::CountUpdated`] otherwise.
     pub fn apply_pitch(&mut self, event: PitchEvent) -> PitchOutcome {
-        self.fielding_team_mut().current_pitcher_mut().stats.pitch_count += 1;
+        self.fielding_team_mut()
+            .current_pitcher_mut()
+            .stats
+            .pitch_count += 1;
         match event {
             PitchEvent::Ball => {
-                if self.count.add_ball() { PitchOutcome::WalkForced } else { PitchOutcome::CountUpdated }
+                if self.count.add_ball() {
+                    PitchOutcome::WalkForced
+                } else {
+                    PitchOutcome::CountUpdated
+                }
             }
             PitchEvent::Strike => {
-                if self.count.add_strike() { PitchOutcome::StrikeoutForced } else { PitchOutcome::CountUpdated }
+                if self.count.add_strike() {
+                    PitchOutcome::StrikeoutForced
+                } else {
+                    PitchOutcome::CountUpdated
+                }
             }
             PitchEvent::Foul => {
                 self.count.add_foul();
@@ -767,8 +815,12 @@ impl GameState {
         // Update batter stats
         {
             let batter = self.batting_team_mut().current_batter_mut();
-            if counts_ab { batter.stats.at_bats += 1; }
-            if is_hit { batter.stats.hits += 1; }
+            if counts_ab {
+                batter.stats.at_bats += 1;
+            }
+            if is_hit {
+                batter.stats.hits += 1;
+            }
             batter.stats.rbi += rbi;
             match &result {
                 AtBatResult::Walk => batter.stats.walks += 1,
@@ -789,9 +841,13 @@ impl GameState {
             let pitcher = self.fielding_team_mut().current_pitcher_mut();
             pitcher.stats.outs_recorded += outs_this_play as u16;
             pitcher.stats.batters_faced += 1;
-            if is_hit { pitcher.stats.hits_allowed += 1; }
+            if is_hit {
+                pitcher.stats.hits_allowed += 1;
+            }
             pitcher.stats.runs_allowed += rbi;
-            if !is_error { pitcher.stats.earned_runs += rbi; }
+            if !is_error {
+                pitcher.stats.earned_runs += rbi;
+            }
             match &result {
                 AtBatResult::Walk => pitcher.stats.walks += 1,
                 AtBatResult::HitByPitch => pitcher.stats.hit_batsmen += 1,
@@ -842,18 +898,26 @@ impl GameState {
         self.outs += outs_this_play;
         if self.outs >= 3 {
             self.end_half_inning();
-            if self.game_over { InningOutcome::GameOver } else { InningOutcome::ThreeOuts }
+            if self.game_over {
+                InningOutcome::GameOver
+            } else {
+                InningOutcome::ThreeOuts
+            }
         } else {
             InningOutcome::Continue
         }
     }
 
-    fn advance_bases_for_result(&mut self, result: &AtBatResult, batter_idx: usize) -> (u8, Vec<usize>) {
+    fn advance_bases_for_result(
+        &mut self,
+        result: &AtBatResult,
+        batter_idx: usize,
+    ) -> (u8, Vec<usize>) {
         match result {
-            AtBatResult::Single    => self.bases.advance_all(1, batter_idx),
-            AtBatResult::Double    => self.bases.advance_all(2, batter_idx),
-            AtBatResult::Triple    => self.bases.advance_all(3, batter_idx),
-            AtBatResult::HomeRun   => self.bases.advance_all(4, batter_idx),
+            AtBatResult::Single => self.bases.advance_all(1, batter_idx),
+            AtBatResult::Double => self.bases.advance_all(2, batter_idx),
+            AtBatResult::Triple => self.bases.advance_all(3, batter_idx),
+            AtBatResult::HomeRun => self.bases.advance_all(4, batter_idx),
             AtBatResult::Walk | AtBatResult::HitByPitch => self.bases.force_advance(batter_idx),
             AtBatResult::Error(_) => {
                 // Batter reaches first; existing runners don't auto-advance
@@ -862,9 +926,13 @@ impl GameState {
             }
             AtBatResult::FieldersChoice => {
                 // Lead runner is retired; batter reaches first
-                if self.bases.third.is_some() { self.bases.third = None; }
-                else if self.bases.second.is_some() { self.bases.second = None; }
-                else { self.bases.first = None; }
+                if self.bases.third.is_some() {
+                    self.bases.third = None;
+                } else if self.bases.second.is_some() {
+                    self.bases.second = None;
+                } else {
+                    self.bases.first = None;
+                }
                 self.bases.first = Some(batter_idx);
                 (0, vec![])
             }
@@ -878,9 +946,13 @@ impl GameState {
             }
             AtBatResult::DoublePlay(_) => {
                 // Remove the lead runner (the one thrown out first)
-                if self.bases.first.is_some() { self.bases.first = None; }
-                else if self.bases.second.is_some() { self.bases.second = None; }
-                else if self.bases.third.is_some() { self.bases.third = None; }
+                if self.bases.first.is_some() {
+                    self.bases.first = None;
+                } else if self.bases.second.is_some() {
+                    self.bases.second = None;
+                } else if self.bases.third.is_some() {
+                    self.bases.third = None;
+                }
                 (0, vec![])
             }
             AtBatResult::Groundout(_)
@@ -959,7 +1031,11 @@ impl GameState {
         if let Some(i) = runner_idx {
             let name = self.batting_team().lineup[i].info.name.clone();
             self.batting_team_mut().lineup[i].stats.stolen_bases += 1;
-            let label = if to_base >= 4 { "H".to_string() } else { format!("{}B", to_base) };
+            let label = if to_base >= 4 {
+                "H".to_string()
+            } else {
+                format!("{}B", to_base)
+            };
             self.play_log.push(PlayLogEntry {
                 inning: self.inning,
                 half: self.half.clone(),
@@ -972,12 +1048,22 @@ impl GameState {
 
     /// Records a caught stealing at `to_base`: removes the runner (or undoes a scored run if
     /// `to_base == 4`), credits CS to `runner_idx`, increments outs, and checks for end-of-half.
-    pub fn record_caught_stealing(&mut self, runner_idx: Option<usize>, to_base: u8) -> InningOutcome {
+    pub fn record_caught_stealing(
+        &mut self,
+        runner_idx: Option<usize>,
+        to_base: u8,
+    ) -> InningOutcome {
         if to_base <= 3 {
             match to_base {
-                1 => { self.bases.first = None; }
-                2 => { self.bases.second = None; }
-                3 => { self.bases.third = None; }
+                1 => {
+                    self.bases.first = None;
+                }
+                2 => {
+                    self.bases.second = None;
+                }
+                3 => {
+                    self.bases.third = None;
+                }
                 _ => {}
             }
         } else {
@@ -999,7 +1085,11 @@ impl GameState {
         if let Some(i) = runner_idx {
             let name = self.batting_team().lineup[i].info.name.clone();
             self.batting_team_mut().lineup[i].stats.caught_stealing += 1;
-            let label = if to_base >= 4 { "H".to_string() } else { format!("{}B", to_base) };
+            let label = if to_base >= 4 {
+                "H".to_string()
+            } else {
+                format!("{}B", to_base)
+            };
             self.play_log.push(PlayLogEntry {
                 inning: self.inning,
                 half: self.half.clone(),
@@ -1011,7 +1101,11 @@ impl GameState {
         self.outs += 1;
         if self.outs >= 3 {
             self.end_half_inning();
-            if self.game_over { InningOutcome::GameOver } else { InningOutcome::ThreeOuts }
+            if self.game_over {
+                InningOutcome::GameOver
+            } else {
+                InningOutcome::ThreeOuts
+            }
         } else {
             InningOutcome::Continue
         }
@@ -1122,7 +1216,11 @@ mod tests {
 
     #[test]
     fn test_walk_bases_loaded() {
-        let mut bases = Bases { first: Some(0), second: Some(1), third: Some(2) };
+        let mut bases = Bases {
+            first: Some(0),
+            second: Some(1),
+            third: Some(2),
+        };
         let (runs, scorers) = bases.force_advance(3);
         assert_eq!(runs, 1);
         assert_eq!(scorers, vec![2]);
@@ -1133,7 +1231,11 @@ mod tests {
 
     #[test]
     fn test_hr_clears_bases() {
-        let mut bases = Bases { first: Some(0), second: Some(1), third: Some(2) };
+        let mut bases = Bases {
+            first: Some(0),
+            second: Some(1),
+            third: Some(2),
+        };
         let (runs, _) = bases.advance_all(4, 3);
         assert_eq!(runs, 4);
         assert!(bases.first.is_none());
@@ -1143,7 +1245,11 @@ mod tests {
 
     #[test]
     fn test_single_advancement() {
-        let mut bases = Bases { first: Some(0), second: None, third: Some(2) };
+        let mut bases = Bases {
+            first: Some(0),
+            second: None,
+            third: Some(2),
+        };
         let (runs, _) = bases.advance_all(1, 3);
         assert_eq!(runs, 1); // runner from third scores
         assert_eq!(bases.first, Some(3)); // batter
@@ -1211,7 +1317,10 @@ mod tests {
 
     #[test]
     fn test_count_foul_no_third_strike() {
-        let mut c = Count { balls: 0, strikes: 2 };
+        let mut c = Count {
+            balls: 0,
+            strikes: 2,
+        };
         c.add_foul();
         assert_eq!(c.strikes, 2);
     }
@@ -1230,7 +1339,10 @@ mod tests {
 
     #[test]
     fn test_count_ball_walk_at_four() {
-        let mut c = Count { balls: 3, strikes: 0 };
+        let mut c = Count {
+            balls: 3,
+            strikes: 0,
+        };
         assert!(c.add_ball());
         assert_eq!(c.balls, 4);
     }
@@ -1245,7 +1357,10 @@ mod tests {
 
     #[test]
     fn test_count_strike_so_at_three() {
-        let mut c = Count { balls: 0, strikes: 2 };
+        let mut c = Count {
+            balls: 0,
+            strikes: 2,
+        };
         assert!(c.add_strike());
     }
 
@@ -1258,7 +1373,10 @@ mod tests {
 
     #[test]
     fn test_count_reset_clears() {
-        let mut c = Count { balls: 3, strikes: 2 };
+        let mut c = Count {
+            balls: 3,
+            strikes: 2,
+        };
         c.reset();
         assert_eq!(c.balls, 0);
         assert_eq!(c.strikes, 0);
@@ -1330,19 +1448,28 @@ mod tests {
 
     #[test]
     fn test_avg_display_zero() {
-        let b = BatterInfo { name: "X".into(), season_avg: 0.0 };
+        let b = BatterInfo {
+            name: "X".into(),
+            season_avg: 0.0,
+        };
         assert_eq!(b.avg_display(), ".---");
     }
 
     #[test]
     fn test_avg_display_negative() {
-        let b = BatterInfo { name: "X".into(), season_avg: -0.1 };
+        let b = BatterInfo {
+            name: "X".into(),
+            season_avg: -0.1,
+        };
         assert_eq!(b.avg_display(), ".---");
     }
 
     #[test]
     fn test_avg_display_normal() {
-        let b = BatterInfo { name: "X".into(), season_avg: 0.315 };
+        let b = BatterInfo {
+            name: "X".into(),
+            season_avg: 0.315,
+        };
         assert_eq!(b.avg_display(), ".315");
     }
 
@@ -1395,7 +1522,11 @@ mod tests {
 
     #[test]
     fn test_advance_all_double_runner_on_first() {
-        let mut bases = Bases { first: Some(0), second: None, third: None };
+        let mut bases = Bases {
+            first: Some(0),
+            second: None,
+            third: None,
+        };
         let (runs, _) = bases.advance_all(2, 1);
         assert_eq!(runs, 0);
         assert_eq!(bases.second, Some(1)); // batter on 2nd
@@ -1405,7 +1536,11 @@ mod tests {
 
     #[test]
     fn test_advance_all_triple_runner_on_second() {
-        let mut bases = Bases { first: None, second: Some(0), third: None };
+        let mut bases = Bases {
+            first: None,
+            second: Some(0),
+            third: None,
+        };
         let (runs, scorers) = bases.advance_all(3, 1);
         assert_eq!(runs, 1);
         assert_eq!(scorers, vec![0]);
@@ -1425,7 +1560,11 @@ mod tests {
 
     #[test]
     fn test_force_advance_runner_on_first_only() {
-        let mut bases = Bases { first: Some(0), second: None, third: None };
+        let mut bases = Bases {
+            first: Some(0),
+            second: None,
+            third: None,
+        };
         let (runs, scorers) = bases.force_advance(1);
         assert_eq!(runs, 0);
         assert!(scorers.is_empty());
@@ -1436,7 +1575,11 @@ mod tests {
 
     #[test]
     fn test_force_advance_runners_on_first_second() {
-        let mut bases = Bases { first: Some(0), second: Some(1), third: None };
+        let mut bases = Bases {
+            first: Some(0),
+            second: Some(1),
+            third: None,
+        };
         let (runs, scorers) = bases.force_advance(2);
         assert_eq!(runs, 0);
         assert!(scorers.is_empty());
@@ -1449,7 +1592,11 @@ mod tests {
 
     #[test]
     fn test_move_runner_1_to_2() {
-        let mut bases = Bases { first: Some(0), second: None, third: None };
+        let mut bases = Bases {
+            first: Some(0),
+            second: None,
+            third: None,
+        };
         assert!(!bases.move_runner(1, 2));
         assert!(bases.first.is_none());
         assert_eq!(bases.second, Some(0));
@@ -1457,7 +1604,11 @@ mod tests {
 
     #[test]
     fn test_move_runner_3_to_home() {
-        let mut bases = Bases { first: None, second: None, third: Some(0) };
+        let mut bases = Bases {
+            first: None,
+            second: None,
+            third: Some(0),
+        };
         assert!(bases.move_runner(3, 4));
         assert!(bases.third.is_none());
     }
@@ -1482,7 +1633,11 @@ mod tests {
     #[test]
     fn test_walk_bases_loaded_run_scores() {
         let mut game = make_game();
-        game.bases = Bases { first: Some(0), second: Some(1), third: Some(2) };
+        game.bases = Bases {
+            first: Some(0),
+            second: Some(1),
+            third: Some(2),
+        };
         game.apply_at_bat_result(AtBatResult::Walk, 1);
         assert_eq!(game.away_total_runs(), 1);
     }
@@ -1571,9 +1726,13 @@ mod tests {
     fn test_end_half_inning_bottom_advances_inning() {
         let mut game = make_game();
         // top half: 3 outs
-        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..3 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
         // bottom half: 3 outs
-        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..3 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
         assert_eq!(game.inning, 2);
         assert_eq!(game.half, Half::Top);
     }
@@ -1583,7 +1742,9 @@ mod tests {
         let mut game = make_game();
         // Play through 8 full innings (3 outs per half)
         for _ in 0..16 {
-            for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+            for _ in 0..3 {
+                game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+            }
         }
         assert_eq!(game.inning, 9);
         assert!(!game.game_over);
@@ -1595,15 +1756,21 @@ mod tests {
         let mut game = make_game();
         // Play 8 full scoreless innings
         for _ in 0..16 {
-            for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+            for _ in 0..3 {
+                game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+            }
         }
         assert_eq!(game.inning, 9);
         assert_eq!(game.half, Half::Top);
         // Top 9: away scores 0, 3 Ks
-        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..3 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
         // Bottom 9: home hits a HR (1 run), then three outs → game ends
         game.apply_at_bat_result(AtBatResult::HomeRun, 1);
-        for _ in 0..2 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..2 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
         let outcome = game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
         assert!(matches!(outcome, InningOutcome::GameOver));
         assert!(game.game_over);
@@ -1616,7 +1783,9 @@ mod tests {
         let mut game = make_game();
         game.bases.first = Some(0);
         game.bases.second = Some(1);
-        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..3 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
         assert!(game.bases.is_empty());
     }
 
@@ -1660,7 +1829,9 @@ mod tests {
     #[test]
     fn test_change_pitcher_sets_current() {
         let mut game = make_game();
-        game.change_pitcher(PitcherInfo { name: "Reliever".into() });
+        game.change_pitcher(PitcherInfo {
+            name: "Reliever".into(),
+        });
         assert_eq!(game.home.current_pitcher().info.name, "Reliever");
         assert_eq!(game.home.pitchers.len(), 2);
         assert_eq!(game.home.current_pitcher().entered_inning, 1);
@@ -1670,7 +1841,9 @@ mod tests {
     fn test_assign_decisions_home_wins_solo_pitcher() {
         let mut game = make_game();
         // Home scores in bottom 1st
-        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..3 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
         game.apply_at_bat_result(AtBatResult::HomeRun, 1);
         game.assign_decisions();
         assert_eq!(game.home.pitchers[0].decision, Some(Decision::Win));
@@ -1691,10 +1864,14 @@ mod tests {
         let mut game = make_game();
         // Away scores in top of 1st
         game.apply_at_bat_result(AtBatResult::HomeRun, 1);
-        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..3 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
         // Now bottom of 1st — away is the fielding team; add a reliever to away
         assert_eq!(game.half, Half::Bottom);
-        game.change_pitcher(PitcherInfo { name: "Closer".into() });
+        game.change_pitcher(PitcherInfo {
+            name: "Closer".into(),
+        });
         game.assign_decisions();
         // Away won with 2 pitchers: first gets Win, second gets Save
         assert_eq!(game.away.pitchers[0].decision, Some(Decision::Win));
@@ -1709,8 +1886,12 @@ mod tests {
         let mut game = make_game();
         game.apply_at_bat_result(AtBatResult::HomeRun, 1);
         // Move to inning 2
-        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
-        for _ in 0..3 { game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0); }
+        for _ in 0..3 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
+        for _ in 0..3 {
+            game.apply_at_bat_result(AtBatResult::StrikeoutSwinging, 0);
+        }
         game.apply_at_bat_result(AtBatResult::HomeRun, 1);
         assert_eq!(game.inning_scores[0].away_runs, 1);
         assert_eq!(game.inning_scores[1].away_runs, 1);

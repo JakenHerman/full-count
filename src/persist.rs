@@ -260,6 +260,7 @@ mod tests {
     use super::*;
     use crate::game::{AtBatResult, GameState, Half};
     use crate::test_helpers::helpers::make_team;
+    use serde_json::Value;
 
     fn make_game() -> GameState {
         GameState::new(make_team("Visitors"), make_team("Homers"))
@@ -457,5 +458,61 @@ mod tests {
     fn test_sanitize_truncates_long_names() {
         let long = "a".repeat(32);
         assert_eq!(sanitize(&long).len(), 16);
+    }
+
+    fn astros_scoreability_fixture_path() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("test_data")
+            .join("mlb")
+            .join("astros-scoreability-2026-04-09.json")
+    }
+
+    #[test]
+    fn test_astros_scoreability_fixture_has_expected_metadata() {
+        let path = astros_scoreability_fixture_path();
+        let raw = fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("failed to read fixture {}: {}", path.display(), e));
+        let doc: Value = serde_json::from_str(&raw)
+            .unwrap_or_else(|e| panic!("failed to parse fixture {}: {}", path.display(), e));
+
+        assert_eq!(doc["date"].as_str(), Some("2026-04-09"));
+        assert_eq!(doc["team_id"].as_u64(), Some(117));
+        assert_eq!(doc["team_name"].as_str(), Some("Houston Astros"));
+        assert!(doc["games"].is_array(), "games should be an array");
+        let games_len = doc["games"].as_array().map_or(0, |g| g.len()) as u64;
+        assert_eq!(doc["total_games"].as_u64(), Some(games_len));
+    }
+
+    #[test]
+    fn test_astros_scoreability_has_no_unsupported_events() {
+        let path = astros_scoreability_fixture_path();
+        let raw = fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("failed to read fixture {}: {}", path.display(), e));
+        let doc: Value = serde_json::from_str(&raw)
+            .unwrap_or_else(|e| panic!("failed to parse fixture {}: {}", path.display(), e));
+
+        let mut details = Vec::new();
+        if let Some(games) = doc["games"].as_array() {
+            for game in games {
+                let game_pk = game["game_pk"].as_u64().unwrap_or(0);
+                if let Some(events) = game["unsupported_events"].as_array() {
+                    for ev in events {
+                        let inning = ev["inning"].as_u64().unwrap_or(0);
+                        let half = ev["half"].as_str().unwrap_or("?");
+                        let event_type = ev["event_type"].as_str().unwrap_or("unknown");
+                        let description = ev["description"].as_str().unwrap_or("unknown");
+                        details.push(format!(
+                            "game_pk={game_pk}, inning={inning}, half={half}, event_type={event_type}, description={description}"
+                        ));
+                    }
+                }
+            }
+        }
+
+        assert!(
+            details.is_empty(),
+            "Found unsupported MLB events for Astros fixture; open GitHub issues for each:\n{}",
+            details.join("\n")
+        );
     }
 }

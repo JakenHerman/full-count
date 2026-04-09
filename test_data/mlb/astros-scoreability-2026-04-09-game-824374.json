@@ -1,0 +1,40 @@
+{
+  "pulled_at_utc": "2026-04-09T02:47:19+00:00",
+  "query_date": "2026-04-09",
+  "team_id": 117,
+  "team_name": "Houston Astros",
+  "schedule_url": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=117&date=2026-04-09",
+  "game_pk_filter": 824374,
+  "games": [
+    {
+      "game_pk": 824374,
+      "official_date": "2026-04-08",
+      "status": "Final",
+      "astros_home": false,
+      "opponent": "Colorado Rockies",
+      "astros_runs": 1,
+      "astros_hits": 8,
+      "astros_errors": 0,
+      "opponent_runs": 9,
+      "opponent_hits": 10,
+      "opponent_errors": 0,
+      "plays_total": 82,
+      "supported_events": 81,
+      "unsupported_events": [
+        {
+          "play_id": null,
+          "inning": 2,
+          "half": "bottom",
+          "event_type": "sac_bunt",
+          "event": "Sac Bunt",
+          "description": "Tyler Freeman out on a sacrifice bunt, catcher Christian V\u00e1zquez to first baseman Christian Walker. Kyle Karros to 3rd. Edouard Julien to 2nd.",
+          "mapping": "unmapped",
+          "why_unscoreable": "full-count has no sacrifice-bunt at-bat result. Approximating as a groundout would incorrectly count an at-bat and miss SH-specific scoring semantics."
+        }
+      ]
+    }
+  ],
+  "total_games": 1,
+  "total_supported_events": 81,
+  "total_unsupported_events": 1
+}

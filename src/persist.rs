@@ -464,7 +464,7 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("test_data")
             .join("mlb")
-            .join("astros-scoreability-2026-04-09.json")
+            .join("astros-scoreability-2026-04-09-game-824374.json")
     }
 
     #[test]
@@ -475,44 +475,56 @@ mod tests {
         let doc: Value = serde_json::from_str(&raw)
             .unwrap_or_else(|e| panic!("failed to parse fixture {}: {}", path.display(), e));
 
-        assert_eq!(doc["date"].as_str(), Some("2026-04-09"));
+        assert_eq!(doc["query_date"].as_str(), Some("2026-04-09"));
+        assert_eq!(doc["game_pk_filter"].as_u64(), Some(824374));
         assert_eq!(doc["team_id"].as_u64(), Some(117));
         assert_eq!(doc["team_name"].as_str(), Some("Houston Astros"));
         assert!(doc["games"].is_array(), "games should be an array");
         let games_len = doc["games"].as_array().map_or(0, |g| g.len()) as u64;
         assert_eq!(doc["total_games"].as_u64(), Some(games_len));
+        assert_eq!(doc["total_games"].as_u64(), Some(1));
+        assert_eq!(doc["total_supported_events"].as_u64(), Some(81));
+        assert_eq!(doc["total_unsupported_events"].as_u64(), Some(1));
     }
 
     #[test]
-    fn test_astros_scoreability_has_no_unsupported_events() {
+    fn test_astros_scoreability_reports_expected_unscoreable_situations() {
         let path = astros_scoreability_fixture_path();
         let raw = fs::read_to_string(&path)
             .unwrap_or_else(|e| panic!("failed to read fixture {}: {}", path.display(), e));
         let doc: Value = serde_json::from_str(&raw)
             .unwrap_or_else(|e| panic!("failed to parse fixture {}: {}", path.display(), e));
 
-        let mut details = Vec::new();
-        if let Some(games) = doc["games"].as_array() {
-            for game in games {
-                let game_pk = game["game_pk"].as_u64().unwrap_or(0);
-                if let Some(events) = game["unsupported_events"].as_array() {
-                    for ev in events {
-                        let inning = ev["inning"].as_u64().unwrap_or(0);
-                        let half = ev["half"].as_str().unwrap_or("?");
-                        let event_type = ev["event_type"].as_str().unwrap_or("unknown");
-                        let description = ev["description"].as_str().unwrap_or("unknown");
-                        details.push(format!(
-                            "game_pk={game_pk}, inning={inning}, half={half}, event_type={event_type}, description={description}"
-                        ));
-                    }
-                }
-            }
-        }
+        let games = doc["games"]
+            .as_array()
+            .unwrap_or_else(|| panic!("games should be an array in {}", path.display()));
+        assert_eq!(games.len(), 1);
+        let game = &games[0];
+        assert_eq!(game["game_pk"].as_u64(), Some(824374));
+        assert_eq!(game["official_date"].as_str(), Some("2026-04-08"));
+        assert_eq!(game["opponent"].as_str(), Some("Colorado Rockies"));
 
+        let unsupported = game["unsupported_events"].as_array().unwrap_or_else(|| {
+            panic!(
+                "unsupported_events should be an array in {}",
+                path.display()
+            )
+        });
+        assert_eq!(
+            unsupported.len(),
+            1,
+            "Unexpected unsupported-event count for game 824374"
+        );
+        let ev = &unsupported[0];
+        assert_eq!(ev["event_type"].as_str(), Some("sac_bunt"));
+        assert_eq!(ev["inning"].as_u64(), Some(2));
+        assert_eq!(ev["half"].as_str(), Some("bottom"));
+        assert_eq!(ev["mapping"].as_str(), Some("unmapped"));
         assert!(
-            details.is_empty(),
-            "Found unsupported MLB events for Astros fixture; open GitHub issues for each:\n{}",
-            details.join("\n")
+            ev["why_unscoreable"]
+                .as_str()
+                .is_some_and(|s| s.contains("sacrifice-bunt")),
+            "why_unscoreable should mention sacrifice-bunt"
         );
     }
 }

@@ -260,7 +260,6 @@ mod tests {
     use super::*;
     use crate::game::{AtBatResult, GameState, Half};
     use crate::test_helpers::helpers::make_team;
-    use serde_json::Value;
 
     fn make_game() -> GameState {
         GameState::new(make_team("Visitors"), make_team("Homers"))
@@ -460,71 +459,4 @@ mod tests {
         assert_eq!(sanitize(&long).len(), 16);
     }
 
-    fn astros_scoreability_fixture_path() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("test_data")
-            .join("mlb")
-            .join("astros-scoreability-2026-04-09-game-824374.json")
-    }
-
-    #[test]
-    fn test_astros_scoreability_fixture_has_expected_metadata() {
-        let path = astros_scoreability_fixture_path();
-        let raw = fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("failed to read fixture {}: {}", path.display(), e));
-        let doc: Value = serde_json::from_str(&raw)
-            .unwrap_or_else(|e| panic!("failed to parse fixture {}: {}", path.display(), e));
-
-        assert_eq!(doc["query_date"].as_str(), Some("2026-04-09"));
-        assert_eq!(doc["game_pk_filter"].as_u64(), Some(824374));
-        assert_eq!(doc["team_id"].as_u64(), Some(117));
-        assert_eq!(doc["team_name"].as_str(), Some("Houston Astros"));
-        assert!(doc["games"].is_array(), "games should be an array");
-        let games_len = doc["games"].as_array().map_or(0, |g| g.len()) as u64;
-        assert_eq!(doc["total_games"].as_u64(), Some(games_len));
-        assert_eq!(doc["total_games"].as_u64(), Some(1));
-        assert_eq!(doc["total_supported_events"].as_u64(), Some(81));
-        assert_eq!(doc["total_unsupported_events"].as_u64(), Some(1));
-    }
-
-    #[test]
-    fn test_astros_scoreability_reports_expected_unscoreable_situations() {
-        let path = astros_scoreability_fixture_path();
-        let raw = fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("failed to read fixture {}: {}", path.display(), e));
-        let doc: Value = serde_json::from_str(&raw)
-            .unwrap_or_else(|e| panic!("failed to parse fixture {}: {}", path.display(), e));
-
-        let games = doc["games"]
-            .as_array()
-            .unwrap_or_else(|| panic!("games should be an array in {}", path.display()));
-        assert_eq!(games.len(), 1);
-        let game = &games[0];
-        assert_eq!(game["game_pk"].as_u64(), Some(824374));
-        assert_eq!(game["official_date"].as_str(), Some("2026-04-08"));
-        assert_eq!(game["opponent"].as_str(), Some("Colorado Rockies"));
-
-        let unsupported = game["unsupported_events"].as_array().unwrap_or_else(|| {
-            panic!(
-                "unsupported_events should be an array in {}",
-                path.display()
-            )
-        });
-        assert_eq!(
-            unsupported.len(),
-            1,
-            "Unexpected unsupported-event count for game 824374"
-        );
-        let ev = &unsupported[0];
-        assert_eq!(ev["event_type"].as_str(), Some("sac_bunt"));
-        assert_eq!(ev["inning"].as_u64(), Some(2));
-        assert_eq!(ev["half"].as_str(), Some("bottom"));
-        assert_eq!(ev["mapping"].as_str(), Some("unmapped"));
-        assert!(
-            ev["why_unscoreable"]
-                .as_str()
-                .is_some_and(|s| s.contains("sacrifice-bunt")),
-            "why_unscoreable should mention sacrifice-bunt"
-        );
-    }
 }

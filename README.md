@@ -90,6 +90,7 @@ By default, output is written under `test_data/mlb/`:
 
 - Fixture JSON: `astros-scoreability-<date>.json` (or `...-game-<gamePk>.json`)
 - Issue drafts: `test_data/mlb/issues/<query-date>/...` for unsupported event types
+- These files are generated artifacts and are gitignored.
 
 Helpful flags:
 

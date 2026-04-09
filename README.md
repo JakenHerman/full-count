@@ -74,6 +74,29 @@ Replay data is captured automatically during scoring and persisted with each sav
 
 Games save to `~/.full-count/saves/<name>.json`. Names are sanitized (spaces → hyphens, max 64 chars). Save with `F2` during a game, resume with `--load`.
 
+## Astros Scoreability Pull Script
+
+Use `scripts/pull_astros_scoreability.py` to pull Astros MLB game data and check whether all plays are representable by Full Count.
+
+```bash
+# Pull by date (Astros schedule on that date)
+python3 scripts/pull_astros_scoreability.py --date 2026-04-09
+
+# Pull a specific game directly
+python3 scripts/pull_astros_scoreability.py --date 2026-04-09 --game-pk 824374
+```
+
+By default, output is written under `test_data/mlb/`:
+
+- Fixture JSON: `astros-scoreability-<date>.json` (or `...-game-<gamePk>.json`)
+- Issue drafts: `test_data/mlb/issues/<query-date>/...` for unsupported event types
+
+Helpful flags:
+
+- `--date YYYY-MM-DD` query date (defaults to today)
+- `--game-pk <id>` target one specific game
+- `--out-dir <path>` write fixtures/issues somewhere else
+
 ## Development
 
 ```bash

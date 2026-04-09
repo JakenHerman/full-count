@@ -458,5 +458,4 @@ mod tests {
         let long = "a".repeat(32);
         assert_eq!(sanitize(&long).len(), 16);
     }
-
 }

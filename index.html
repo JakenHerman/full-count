@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>full-count - old school homepage</title>
+</head>
+<body bgcolor="#000033" text="#FFFFFF" link="#00FFFF" vlink="#FF66FF" alink="#FFFF00">
+  <center>
+    <h1><font face="Courier New">FULL-COUNT</font></h1>
+    <marquee width="80%" behavior="alternate" scrollamount="6">
+      Every pitch. Every play. Every out.
+    </marquee>
+    <p>
+      <img src="baseball-comic.jpeg" alt="full-count comic" width="420" border="3">
+    </p>
+  </center>
+
+  <table width="80%" align="center" border="1" cellpadding="8" cellspacing="0" bgcolor="#111144">
+    <tr bgcolor="#222266">
+      <th align="left"><font face="Verdana">About</font></th>
+    </tr>
+    <tr>
+      <td>
+        full-count is a keyboard-driven TUI for scoring baseball games in real time.
+        It is written in Rust and built for fast, no-mouse scorekeeping.
+      </td>
+    </tr>
+  </table>
+
+  <br>
+
+  <table width="80%" align="center" border="1" cellpadding="8" cellspacing="0" bgcolor="#111144">
+    <tr bgcolor="#222266">
+      <th align="left"><font face="Verdana">Quick Start</font></th>
+    </tr>
+    <tr>
+      <td>
+        <pre>
+cargo build --release
+
+./target/release/full-count
+./target/release/full-count --load cubs-vs-sox
+./target/release/full-count --load cubs-vs-sox --replay
+        </pre>
+      </td>
+    </tr>
+  </table>
+
+  <br>
+
+  <table width="80%" align="center" border="1" cellpadding="8" cellspacing="0" bgcolor="#111144">
+    <tr bgcolor="#222266">
+      <th align="left"><font face="Verdana">Main Keys</font></th>
+    </tr>
+    <tr>
+      <td>
+        <ul>
+          <li><b>B</b> ball, <b>S</b> strike, <b>F</b> foul</li>
+          <li><b>1</b>/<b>2</b>/<b>3</b> hit types, <b>H</b> home run</li>
+          <li><b>K</b> strikeout swinging, <b>L</b> strikeout looking</li>
+          <li><b>W</b> walk, <b>P</b> hit by pitch, <b>C</b> fielder's choice</li>
+          <li><b>G</b> groundout, <b>D</b> double play, <b>O</b> flyout, <b>E</b> error, <b>V</b> sac fly</li>
+          <li><b>F2</b> save, <b>U</b> undo, <b>X</b> end game, <b>Q</b> quit</li>
+        </ul>
+      </td>
+    </tr>
+  </table>
+
+  <br>
+
+  <center>
+    <p>
+      <a href="https://github.com/JakenHerman/full-count" target="_blank">GitHub Repo</a>
+      |
+      <a href="README.md">README</a>
+    </p>
+    <p><small>Made with old school HTML only.</small></p>
+  </center>
+</body>
+</html>

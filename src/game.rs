@@ -450,6 +450,75 @@ impl Bases {
         (runs, scorers)
     }
 
+    /// Resolves a fielder's choice: the lead forced runner is retired (or, if
+    /// no runner is forced, the lead runner on base), any trailing forced
+    /// runners advance, and the batter takes first.
+    ///
+    /// Returns `true` if a runner was retired on the play.
+    ///
+    /// # Scenarios
+    /// - Runner on 1st only → runner retired at 2nd, batter to 1st.
+    /// - Runners on 1st & 2nd → runner from 2nd retired at 3rd; runner from 1st
+    ///   advances to 2nd; batter to 1st.
+    /// - Runners on 1st & 3rd → runner from 1st retired at 2nd; runner on 3rd
+    ///   unchanged; batter to 1st.
+    /// - Bases loaded → runner from 3rd retired at home; runner from 2nd to 3rd;
+    ///   runner from 1st to 2nd; batter to 1st. No run scores.
+    /// - Runner on 2nd or 3rd only, no force → that lead runner is retired;
+    ///   batter to 1st.
+    /// - Empty bases → no runner is retired and the batter is NOT placed on
+    ///   base. The single out recorded by [`AtBatResult::FieldersChoice`] is
+    ///   attributed to the batter, leaving bases, outs, and runs internally
+    ///   consistent.
+    pub fn resolve_fielders_choice(&mut self, batter_idx: usize) -> bool {
+        let retired;
+        if self.first.is_some() {
+            // A forced runner exists — retire the lead forced runner and
+            // advance trailing forced runners.
+            if self.second.is_some() {
+                if self.third.is_some() {
+                    // Bases loaded: runner from 3rd is the lead forced out.
+                    self.third = self.second.take();
+                } else {
+                    // 1st & 2nd: runner from 2nd is the lead forced out.
+                    self.second = None;
+                }
+                self.second = self.first.take();
+            } else {
+                // 1st only or 1st & 3rd: runner from 1st is the forced out.
+                self.first = None;
+            }
+            retired = true;
+        } else if self.third.is_some() {
+            self.third = None;
+            retired = true;
+        } else if self.second.is_some() {
+            self.second = None;
+            retired = true;
+        } else {
+            retired = false;
+        }
+        if retired {
+            self.first = Some(batter_idx);
+        }
+        retired
+    }
+
+    /// Resolves a standard ground-ball double play: retires the runner forced
+    /// from first (in addition to the batter, which is tracked separately via
+    /// outs). If first is empty, the lead runner on base is retired instead
+    /// (line-drive double-off). Other runners stay in place and the batter is
+    /// not placed on any base.
+    ///
+    /// Returns `true` if a runner was retired from the bases.
+    pub fn resolve_double_play(&mut self) -> bool {
+        if self.first.take().is_some() || self.third.take().is_some() {
+            true
+        } else {
+            self.second.take().is_some()
+        }
+    }
+
     /// Moves a runner from one base to another manually.
     ///
     /// `from` and `to` are 1-indexed base numbers; use `4` for home plate (scores).
@@ -883,10 +952,6 @@ impl GameState {
             if is_hit {
                 pitcher.stats.hits_allowed += 1;
             }
-            pitcher.stats.runs_allowed += rbi;
-            if !is_error {
-                pitcher.stats.earned_runs += rbi;
-            }
             match &result {
                 AtBatResult::Walk => pitcher.stats.walks += 1,
                 AtBatResult::HitByPitch => pitcher.stats.hit_batsmen += 1,
@@ -911,6 +976,17 @@ impl GameState {
         // Credit runs to the individual runners who scored
         for scorer_idx in &scorers {
             self.batting_team_mut().lineup[*scorer_idx].stats.runs += 1;
+        }
+
+        // Credit runs_allowed / earned_runs to the pitcher based on the runs
+        // that actually crossed the plate on this play. All runs on an error
+        // play are unearned; otherwise they are earned.
+        {
+            let pitcher = self.fielding_team_mut().current_pitcher_mut();
+            pitcher.stats.runs_allowed += runs_scored;
+            if !is_error {
+                pitcher.stats.earned_runs += runs_scored;
+            }
         }
 
         // Update inning score
@@ -959,20 +1035,13 @@ impl GameState {
             AtBatResult::HomeRun => self.bases.advance_all(4, batter_idx),
             AtBatResult::Walk | AtBatResult::HitByPitch => self.bases.force_advance(batter_idx),
             AtBatResult::Error(_) => {
-                // Batter reaches first; existing runners don't auto-advance
-                self.bases.first = Some(batter_idx);
-                (0, vec![])
+                // Batter reaches first. Forced runners advance (preserving the
+                // runner originally on first, etc.); non-forced runners stay
+                // in place. Bases-loaded errors score the runner from third.
+                self.bases.force_advance(batter_idx)
             }
             AtBatResult::FieldersChoice => {
-                // Lead runner is retired; batter reaches first
-                if self.bases.third.is_some() {
-                    self.bases.third = None;
-                } else if self.bases.second.is_some() {
-                    self.bases.second = None;
-                } else {
-                    self.bases.first = None;
-                }
-                self.bases.first = Some(batter_idx);
+                self.bases.resolve_fielders_choice(batter_idx);
                 (0, vec![])
             }
             AtBatResult::SacrificeFly(_) => {
@@ -984,14 +1053,7 @@ impl GameState {
                 }
             }
             AtBatResult::DoublePlay(_) => {
-                // Remove the lead runner (the one thrown out first)
-                if self.bases.first.is_some() {
-                    self.bases.first = None;
-                } else if self.bases.second.is_some() {
-                    self.bases.second = None;
-                } else if self.bases.third.is_some() {
-                    self.bases.third = None;
-                }
+                self.bases.resolve_double_play();
                 (0, vec![])
             }
             AtBatResult::Groundout(_)
@@ -1710,10 +1772,82 @@ mod tests {
         let mut game = make_game();
         game.bases.second = Some(1);
         game.apply_at_bat_result(AtBatResult::Error(6), 0);
-        // batter on first, runner on second stays
+        // batter on first, runner on second stays (not forced)
         assert_eq!(game.bases.first, Some(0));
         assert_eq!(game.bases.second, Some(1));
         assert_eq!(game.errors.home, 1); // top half → home team commits error
+    }
+
+    #[test]
+    fn test_error_runner_on_first_is_preserved() {
+        // Regression: a runner on first used to be overwritten when the batter
+        // was placed on first after an Error.
+        let mut game = make_game();
+        game.bases.first = Some(5);
+        game.apply_at_bat_result(AtBatResult::Error(6), 0);
+        // Batter (index 0) takes first; runner originally on first is forced to second.
+        assert_eq!(game.bases.first, Some(0));
+        assert_eq!(game.bases.second, Some(5));
+        assert!(game.bases.third.is_none());
+        assert_eq!(game.outs, 0);
+        assert_eq!(game.away_total_runs(), 0);
+    }
+
+    #[test]
+    fn test_error_runners_on_first_and_second_shift_forward() {
+        let mut game = make_game();
+        game.bases.first = Some(4);
+        game.bases.second = Some(5);
+        game.apply_at_bat_result(AtBatResult::Error(6), 0);
+        assert_eq!(game.bases.first, Some(0));
+        assert_eq!(game.bases.second, Some(4));
+        assert_eq!(game.bases.third, Some(5));
+        assert_eq!(game.away_total_runs(), 0);
+    }
+
+    #[test]
+    fn test_error_bases_loaded_scores_runner_from_third_unearned() {
+        let mut game = make_game();
+        game.bases.first = Some(3);
+        game.bases.second = Some(4);
+        game.bases.third = Some(5);
+        game.apply_at_bat_result(AtBatResult::Error(6), 0);
+        // Bases stay loaded with new runners; runner from third scores.
+        assert_eq!(game.bases.first, Some(0));
+        assert_eq!(game.bases.second, Some(3));
+        assert_eq!(game.bases.third, Some(4));
+        assert_eq!(game.away_total_runs(), 1);
+        // Pitcher is charged with a run, but it is unearned on an error.
+        assert_eq!(game.home.current_pitcher().stats.runs_allowed, 1);
+        assert_eq!(game.home.current_pitcher().stats.earned_runs, 0);
+        // The scoring runner gets credited with a run.
+        assert_eq!(game.away.lineup[5].stats.runs, 1);
+    }
+
+    #[test]
+    fn test_pitcher_runs_allowed_tracks_actual_runs_not_rbi() {
+        // On a bases-loaded single, runs_scored=1 (runner from 3rd) even if
+        // the caller happens to pass a different rbi value. Pitcher stats
+        // should reflect the actual run, not the rbi parameter.
+        let mut game = make_game();
+        game.bases.third = Some(5);
+        // Intentionally pass rbi=0 even though a run scored.
+        game.apply_at_bat_result(AtBatResult::Single, 0);
+        assert_eq!(game.away_total_runs(), 1);
+        assert_eq!(game.home.current_pitcher().stats.runs_allowed, 1);
+        assert_eq!(game.home.current_pitcher().stats.earned_runs, 1);
+    }
+
+    #[test]
+    fn test_error_runner_on_third_only_stays_put() {
+        // Runner on third is not forced by the batter taking first.
+        let mut game = make_game();
+        game.bases.third = Some(2);
+        game.apply_at_bat_result(AtBatResult::Error(6), 0);
+        assert_eq!(game.bases.first, Some(0));
+        assert_eq!(game.bases.third, Some(2));
+        assert!(game.bases.second.is_none());
+        assert_eq!(game.away_total_runs(), 0);
     }
 
     #[test]
@@ -1726,6 +1860,196 @@ mod tests {
         game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
         assert_eq!(game.bases.first, Some(1));
         assert!(game.bases.second.is_none());
+        assert_eq!(game.outs, 1);
+    }
+
+    #[test]
+    fn test_fielders_choice_first_and_second_retires_lead_forced_runner() {
+        // Forced lead runner is the runner on second (forced to third).
+        let mut game = make_game();
+        game.bases.first = Some(4);
+        game.bases.second = Some(5);
+        game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
+        assert_eq!(game.bases.first, Some(0)); // batter
+        assert_eq!(game.bases.second, Some(4)); // runner from first advances
+        assert!(game.bases.third.is_none()); // runner from second retired at third
+        assert_eq!(game.outs, 1);
+        assert_eq!(game.away_total_runs(), 0);
+    }
+
+    #[test]
+    fn test_fielders_choice_first_and_third_retires_runner_from_first() {
+        // Runner on third is not forced; runner on first is forced to second and retired.
+        let mut game = make_game();
+        game.bases.first = Some(4);
+        game.bases.third = Some(5);
+        game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
+        assert_eq!(game.bases.first, Some(0)); // batter
+        assert!(game.bases.second.is_none()); // runner from first retired at second
+        assert_eq!(game.bases.third, Some(5)); // runner on third unchanged
+        assert_eq!(game.outs, 1);
+        assert_eq!(game.away_total_runs(), 0);
+    }
+
+    #[test]
+    fn test_fielders_choice_bases_loaded_retires_runner_at_home() {
+        // Bases loaded: runner from third is the lead forced runner (forced at home).
+        // The retired runner does NOT score.
+        let mut game = make_game();
+        game.bases.first = Some(3);
+        game.bases.second = Some(4);
+        game.bases.third = Some(5);
+        game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
+        assert_eq!(game.bases.first, Some(0));
+        assert_eq!(game.bases.second, Some(3));
+        assert_eq!(game.bases.third, Some(4));
+        assert_eq!(game.outs, 1);
+        assert_eq!(game.away_total_runs(), 0);
+        assert_eq!(game.away.lineup[5].stats.runs, 0);
+    }
+
+    #[test]
+    fn test_fielders_choice_second_only_retires_runner_from_second() {
+        // No force: lead runner on second is retired.
+        let mut game = make_game();
+        game.bases.second = Some(4);
+        game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
+        assert_eq!(game.bases.first, Some(0));
+        assert!(game.bases.second.is_none());
+        assert!(game.bases.third.is_none());
+        assert_eq!(game.outs, 1);
+    }
+
+    #[test]
+    fn test_fielders_choice_third_only_retires_runner_from_third() {
+        let mut game = make_game();
+        game.bases.third = Some(4);
+        game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
+        assert_eq!(game.bases.first, Some(0));
+        assert!(game.bases.third.is_none());
+        assert_eq!(game.outs, 1);
+        assert_eq!(game.away_total_runs(), 0);
+    }
+
+    #[test]
+    fn test_double_play_bases_runner_on_first_retired() {
+        let mut game = make_game();
+        game.bases.first = Some(5);
+        let io = game.apply_at_bat_result(AtBatResult::DoublePlay(vec![6, 4, 3]), 0);
+        assert_eq!(game.outs, 2);
+        assert!(matches!(io, InningOutcome::Continue));
+        // Both the runner from first and the batter are out; bases empty.
+        assert!(game.bases.first.is_none());
+        assert!(game.bases.second.is_none());
+        assert!(game.bases.third.is_none());
+    }
+
+    #[test]
+    fn test_double_play_first_and_second_keeps_runner_on_second() {
+        // Runner forced out at 2nd; runner originally on 2nd stays at 2nd on a
+        // conservative scoring interpretation.
+        let mut game = make_game();
+        game.bases.first = Some(4);
+        game.bases.second = Some(5);
+        game.apply_at_bat_result(AtBatResult::DoublePlay(vec![6, 4, 3]), 0);
+        assert!(game.bases.first.is_none());
+        assert_eq!(game.bases.second, Some(5));
+        assert!(game.bases.third.is_none());
+        assert_eq!(game.outs, 2);
+    }
+
+    #[test]
+    fn test_double_play_bases_loaded_keeps_runners_on_second_and_third() {
+        let mut game = make_game();
+        game.bases.first = Some(3);
+        game.bases.second = Some(4);
+        game.bases.third = Some(5);
+        game.apply_at_bat_result(AtBatResult::DoublePlay(vec![6, 4, 3]), 0);
+        // Runner forced from first is out; batter is out; other runners stay.
+        // RBI is not automatically credited on a DP.
+        assert!(game.bases.first.is_none());
+        assert_eq!(game.bases.second, Some(4));
+        assert_eq!(game.bases.third, Some(5));
+        assert_eq!(game.outs, 2);
+        assert_eq!(game.away_total_runs(), 0);
+    }
+
+    #[test]
+    fn test_double_play_no_runner_on_first_retires_lead_runner() {
+        // Line-drive style DP with runners on 2nd and 3rd: lead runner doubled off.
+        let mut game = make_game();
+        game.bases.second = Some(4);
+        game.bases.third = Some(5);
+        game.apply_at_bat_result(AtBatResult::DoublePlay(vec![8, 5]), 0);
+        assert!(game.bases.first.is_none());
+        assert_eq!(game.bases.second, Some(4));
+        assert!(game.bases.third.is_none());
+        assert_eq!(game.outs, 2);
+    }
+
+    #[test]
+    fn test_double_play_batter_is_not_placed_on_base() {
+        let mut game = make_game();
+        game.bases.first = Some(5);
+        game.apply_at_bat_result(AtBatResult::DoublePlay(vec![6, 4, 3]), 0);
+        assert!(game.bases.first.is_none());
+        // Batting order still advances regardless.
+        assert_eq!(game.away.batting_order_pos, 1);
+    }
+
+    // ── Bases::resolve_fielders_choice direct tests ────────────────────────
+
+    #[test]
+    fn test_resolve_fielders_choice_empty_bases_no_retirement() {
+        // With empty bases, no runner is retired AND the batter is not placed
+        // on base; the single FC out is attributed to the batter.
+        let mut bases = Bases::default();
+        assert!(!bases.resolve_fielders_choice(7));
+        assert!(bases.first.is_none());
+        assert!(bases.second.is_none());
+        assert!(bases.third.is_none());
+    }
+
+    #[test]
+    fn test_fielders_choice_empty_bases_treats_batter_as_out() {
+        // FC with empty bases is a degenerate UI selection; the state must
+        // stay consistent: bases empty, outs += 1, no runs.
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
+        assert!(game.bases.first.is_none());
+        assert!(game.bases.second.is_none());
+        assert!(game.bases.third.is_none());
+        assert_eq!(game.outs, 1);
+        assert_eq!(game.away_total_runs(), 0);
+    }
+
+    #[test]
+    fn test_resolve_fielders_choice_first_only() {
+        let mut bases = Bases {
+            first: Some(4),
+            second: None,
+            third: None,
+        };
+        assert!(bases.resolve_fielders_choice(0));
+        assert_eq!(bases.first, Some(0));
+        assert!(bases.second.is_none());
+    }
+
+    #[test]
+    fn test_resolve_double_play_first_only() {
+        let mut bases = Bases {
+            first: Some(4),
+            second: None,
+            third: None,
+        };
+        assert!(bases.resolve_double_play());
+        assert!(bases.first.is_none());
+    }
+
+    #[test]
+    fn test_resolve_double_play_empty() {
+        let mut bases = Bases::default();
+        assert!(!bases.resolve_double_play());
     }
 
     #[test]

@@ -80,7 +80,8 @@ Version history and notable changes: [`CHANGELOG.md`](CHANGELOG.md).
 
    ```bash
    git tag -a v0.2.0 -m "v0.2.0"
-   git push origin master --tags
+   git push
+   git push --tags
    ```
 
 4. The [**Release**](.github/workflows/release.yml) workflow builds Linux, Windows, and macOS artifacts and attaches them to a **[GitHub Release](https://github.com/jakenherman/full-count/releases)** for that tag. Edit the release notes if you want more detail than the auto-generated summary.

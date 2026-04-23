@@ -466,7 +466,10 @@ impl Bases {
     ///   runner from 1st to 2nd; batter to 1st. No run scores.
     /// - Runner on 2nd or 3rd only, no force → that lead runner is retired;
     ///   batter to 1st.
-    /// - Empty bases → batter to 1st, no runner retired (degenerate case).
+    /// - Empty bases → no runner is retired and the batter is NOT placed on
+    ///   base. The single out recorded by [`AtBatResult::FieldersChoice`] is
+    ///   attributed to the batter, leaving bases, outs, and runs internally
+    ///   consistent.
     pub fn resolve_fielders_choice(&mut self, batter_idx: usize) -> bool {
         let retired;
         if self.first.is_some() {
@@ -495,7 +498,9 @@ impl Bases {
         } else {
             retired = false;
         }
-        self.first = Some(batter_idx);
+        if retired {
+            self.first = Some(batter_idx);
+        }
         retired
     }
 
@@ -947,10 +952,6 @@ impl GameState {
             if is_hit {
                 pitcher.stats.hits_allowed += 1;
             }
-            pitcher.stats.runs_allowed += rbi;
-            if !is_error {
-                pitcher.stats.earned_runs += rbi;
-            }
             match &result {
                 AtBatResult::Walk => pitcher.stats.walks += 1,
                 AtBatResult::HitByPitch => pitcher.stats.hit_batsmen += 1,
@@ -975,6 +976,17 @@ impl GameState {
         // Credit runs to the individual runners who scored
         for scorer_idx in &scorers {
             self.batting_team_mut().lineup[*scorer_idx].stats.runs += 1;
+        }
+
+        // Credit runs_allowed / earned_runs to the pitcher based on the runs
+        // that actually crossed the plate on this play. All runs on an error
+        // play are unearned; otherwise they are earned.
+        {
+            let pitcher = self.fielding_team_mut().current_pitcher_mut();
+            pitcher.stats.runs_allowed += runs_scored;
+            if !is_error {
+                pitcher.stats.earned_runs += runs_scored;
+            }
         }
 
         // Update inning score
@@ -1805,10 +1817,25 @@ mod tests {
         assert_eq!(game.bases.second, Some(3));
         assert_eq!(game.bases.third, Some(4));
         assert_eq!(game.away_total_runs(), 1);
-        // Error means the run is not earned.
+        // Pitcher is charged with a run, but it is unearned on an error.
+        assert_eq!(game.home.current_pitcher().stats.runs_allowed, 1);
         assert_eq!(game.home.current_pitcher().stats.earned_runs, 0);
         // The scoring runner gets credited with a run.
         assert_eq!(game.away.lineup[5].stats.runs, 1);
+    }
+
+    #[test]
+    fn test_pitcher_runs_allowed_tracks_actual_runs_not_rbi() {
+        // On a bases-loaded single, runs_scored=1 (runner from 3rd) even if
+        // the caller happens to pass a different rbi value. Pitcher stats
+        // should reflect the actual run, not the rbi parameter.
+        let mut game = make_game();
+        game.bases.third = Some(5);
+        // Intentionally pass rbi=0 even though a run scored.
+        game.apply_at_bat_result(AtBatResult::Single, 0);
+        assert_eq!(game.away_total_runs(), 1);
+        assert_eq!(game.home.current_pitcher().stats.runs_allowed, 1);
+        assert_eq!(game.home.current_pitcher().stats.earned_runs, 1);
     }
 
     #[test]
@@ -1974,11 +2001,26 @@ mod tests {
 
     #[test]
     fn test_resolve_fielders_choice_empty_bases_no_retirement() {
+        // With empty bases, no runner is retired AND the batter is not placed
+        // on base; the single FC out is attributed to the batter.
         let mut bases = Bases::default();
         assert!(!bases.resolve_fielders_choice(7));
-        assert_eq!(bases.first, Some(7));
+        assert!(bases.first.is_none());
         assert!(bases.second.is_none());
         assert!(bases.third.is_none());
+    }
+
+    #[test]
+    fn test_fielders_choice_empty_bases_treats_batter_as_out() {
+        // FC with empty bases is a degenerate UI selection; the state must
+        // stay consistent: bases empty, outs += 1, no runs.
+        let mut game = make_game();
+        game.apply_at_bat_result(AtBatResult::FieldersChoice, 0);
+        assert!(game.bases.first.is_none());
+        assert!(game.bases.second.is_none());
+        assert!(game.bases.third.is_none());
+        assert_eq!(game.outs, 1);
+        assert_eq!(game.away_total_runs(), 0);
     }
 
     #[test]

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scoring reference · full-count docs</title>
+  <meta name="description" content="Every key, every prompt, every edge case in the full-count scoring screen." />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../"><span class="brand__dot">⚾</span> full-count <span class="brand__tag">docs</span></a>
+      <nav class="nav">
+        <a href="./" class="active">Docs</a>
+        <a href="./getting-started.html">Get started</a>
+        <a href="./scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs">
+    <aside class="sidebar" aria-label="Docs navigation">
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Introduction</p>
+        <ul>
+          <li><a href="./">Overview</a></li>
+          <li><a href="./why.html">Why full-count?</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Getting started</p>
+        <ul><li><a href="./getting-started.html">Install &amp; first game</a></li></ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Scoring</p>
+        <ul>
+          <li><a href="./scoring.html" class="active">Scoring reference</a></li>
+          <li><a href="./replay.html">Replay mode</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Files &amp; features</p>
+        <ul>
+          <li><a href="./saves.html">Saves &amp; exports</a></li>
+          <li><a href="./advanced-stats.html">Advanced stats</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Contributing</p>
+        <ul><li><a href="./development.html">Development</a></li></ul>
+      </div>
+    </aside>
+
+    <article class="content">
+      <p class="breadcrumbs"><a href="../">full-count</a> / <a href="./">Docs</a> / Scoring reference</p>
+      <h1>Scoring reference</h1>
+      <p>
+        full-count's scoring screen is a small state machine. Most of the time you're in
+        <em>waiting-for-result</em> mode and a single keystroke picks the next event. Some results
+        open a sub-prompt (a fielder sequence, an RBI count, a batter name) that you confirm with
+        <kbd>Enter</kbd> or cancel with <kbd>Esc</kbd>.
+      </p>
+      <p>
+        This page is the full list, grouped by purpose. Letter keys are case-insensitive.
+      </p>
+
+      <h2 id="pitches">Pitches</h2>
+      <p>Pitch keystrokes update the count and may resolve the at-bat automatically.</p>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>B</kbd> Ball — four balls triggers the walk flow</div>
+        <div class="keygrid__item"><kbd>S</kbd> Strike — three strikes is a strikeout (swinging)</div>
+        <div class="keygrid__item"><kbd>F</kbd> Foul — counts as a strike up to two</div>
+      </div>
+
+      <div class="callout callout--note">
+        <span class="callout__mark">Auto-walk</span>
+        <div>
+          <p>
+            When a fourth ball comes in, full-count drops you straight into the RBI prompt for a
+            walk — type <kbd>0</kbd>–<kbd>4</kbd> and <kbd>Enter</kbd>. (Only <kbd>1</kbd> is
+            normally legal unless the bases were loaded.)
+          </p>
+        </div>
+      </div>
+
+      <h2 id="at-bats">At-bat results</h2>
+      <p>
+        These keys end the current at-bat. Hits, walks, HBP, and fielder's choice open the
+        <a href="#rbi">RBI prompt</a>. Strikeouts and the fielder-driven outs do not.
+      </p>
+
+      <h3>Hits &amp; on-base</h3>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>1</kbd> Single</div>
+        <div class="keygrid__item"><kbd>2</kbd> Double</div>
+        <div class="keygrid__item"><kbd>3</kbd> Triple</div>
+        <div class="keygrid__item"><kbd>H</kbd> Home run</div>
+        <div class="keygrid__item"><kbd>W</kbd> Walk</div>
+        <div class="keygrid__item"><kbd>P</kbd> Hit by pitch</div>
+        <div class="keygrid__item"><kbd>C</kbd> Fielder's choice</div>
+      </div>
+
+      <h3>Strikeouts</h3>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>K</kbd> Strikeout swinging</div>
+        <div class="keygrid__item"><kbd>L</kbd> Strikeout looking</div>
+      </div>
+
+      <h3 id="fielder">Fielder-driven outs &amp; errors</h3>
+      <p>
+        These keys open a <strong>fielder prompt</strong>: type the position sequence and
+        <kbd>Enter</kbd>. Positions are the standard digits 1–9 (<code>1</code>=P,
+        <code>2</code>=C, <code>3</code>=1B, <code>4</code>=2B, <code>5</code>=3B,
+        <code>6</code>=SS, <code>7</code>=LF, <code>8</code>=CF, <code>9</code>=RF).
+      </p>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>G</kbd> Groundout — e.g. <code>6-3</code></div>
+        <div class="keygrid__item"><kbd>D</kbd> Double play — e.g. <code>6-4-3</code></div>
+        <div class="keygrid__item"><kbd>O</kbd> Flyout / lineout — e.g. <code>8</code></div>
+        <div class="keygrid__item"><kbd>E</kbd> Error — e.g. <code>6</code> (runner safe)</div>
+        <div class="keygrid__item"><kbd>V</kbd> Sacrifice fly — e.g. <code>8</code></div>
+      </div>
+
+      <h2 id="rbi">RBI prompt</h2>
+      <p>
+        After any hit, walk, HBP, or fielder's choice, a small prompt appears asking how many runs
+        scored <em>as a result of the play</em>. Type a digit <kbd>0</kbd>–<kbd>4</kbd> and press
+        <kbd>Enter</kbd>. <kbd>Esc</kbd> cancels the whole play.
+      </p>
+
+      <h2 id="runners">Manual runner advancement</h2>
+      <p>
+        Use <kbd>A</kbd> when something happens <em>between</em> pitches that moves a runner:
+        stolen base, caught stealing, wild pitch, passed ball, balk, or generic &ldquo;other&rdquo;.
+      </p>
+      <ol>
+        <li>Press <kbd>A</kbd>.</li>
+        <li>Choose the base the runner is leaving (<kbd>1</kbd>, <kbd>2</kbd>, or <kbd>3</kbd>).</li>
+        <li>Choose the destination (<kbd>2</kbd>, <kbd>3</kbd>, or <kbd>4</kbd> for home — or <kbd>0</kbd> for caught-out).</li>
+        <li>Choose the reason — <kbd>S</kbd> stolen base, <kbd>C</kbd> caught stealing, <kbd>W</kbd> wild pitch, <kbd>P</kbd> passed ball, <kbd>B</kbd> balk, <kbd>O</kbd> other.</li>
+      </ol>
+      <p>Stats are credited to whoever they belong to — the runner gets the SB or CS, the pitcher gets the WP or balk.</p>
+
+      <h2 id="subs">Substitutions</h2>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>R</kbd> Swap in a new batter in the current slot</div>
+        <div class="keygrid__item"><kbd>Tab</kbd> Bring in a new pitcher</div>
+      </div>
+      <p>
+        Both open a name prompt. The replaced player's accumulated stat line is preserved — it
+        doesn't disappear into the newcomer's row.
+      </p>
+
+      <h2 id="undo">Undo</h2>
+      <p>
+        Press <kbd>U</kbd> to undo the most recent play. full-count pushes a snapshot of the game
+        state before every user-initiated action; the stack holds up to <strong>100</strong>
+        entries. Once you hit 100 the oldest snapshot is dropped.
+      </p>
+      <p>
+        Undo reverses whatever happened last — a pitch, a hit, a runner advance, a substitution —
+        and is the right button when you miscalled something. Substitutions undo to the previous
+        roster state.
+      </p>
+
+      <h2 id="save">Saving, ending, quitting</h2>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>F2</kbd> Save (opens name prompt)</div>
+        <div class="keygrid__item"><kbd>F3</kbd> Force-exit help overlay on setup</div>
+        <div class="keygrid__item"><kbd>X</kbd> End game &rarr; summary screen</div>
+        <div class="keygrid__item"><kbd>Q</kbd> Quit immediately (no autosave)</div>
+        <div class="keygrid__item"><kbd>Ctrl+C</kbd> Quit immediately (same as <kbd>Q</kbd>)</div>
+      </div>
+
+      <h2 id="log">Play-log scrolling</h2>
+      <p>
+        The play log shows every event you've scored. When it gets long, scroll it without leaving
+        the keyboard:
+      </p>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>↓</kbd> or <kbd>j</kbd> Scroll down one line</div>
+        <div class="keygrid__item"><kbd>↑</kbd> or <kbd>k</kbd> Scroll up one line</div>
+      </div>
+
+      <h2 id="prompts">Prompt summary</h2>
+      <table>
+        <thead>
+          <tr><th>Prompt</th><th>Triggered by</th><th>Valid keys</th><th>Confirm</th><th>Cancel</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Fielder sequence</td><td><kbd>G</kbd> <kbd>D</kbd> <kbd>O</kbd> <kbd>E</kbd> <kbd>V</kbd></td><td>digits <code>1</code>–<code>9</code>, <code>-</code></td><td><kbd>Enter</kbd></td><td><kbd>Esc</kbd></td></tr>
+          <tr><td>RBI count</td><td>hits, walks, HBP, FC, auto-walk</td><td><kbd>0</kbd>–<kbd>4</kbd></td><td><kbd>Enter</kbd></td><td><kbd>Esc</kbd></td></tr>
+          <tr><td>Batter name</td><td><kbd>R</kbd></td><td>letters, digits, space</td><td><kbd>Enter</kbd></td><td><kbd>Esc</kbd></td></tr>
+          <tr><td>Pitcher name</td><td><kbd>Tab</kbd></td><td>letters, digits, space</td><td><kbd>Enter</kbd></td><td><kbd>Esc</kbd></td></tr>
+          <tr><td>Save name</td><td><kbd>F2</kbd></td><td>letters, digits, space, <code>-</code></td><td><kbd>Enter</kbd></td><td><kbd>Esc</kbd></td></tr>
+          <tr><td>Runner advance</td><td><kbd>A</kbd></td><td>see <a href="#runners">Manual runner advancement</a></td><td>auto</td><td><kbd>Esc</kbd></td></tr>
+        </tbody>
+      </table>
+
+      <div class="pager">
+        <a href="./getting-started.html"><span class="pager__dir">← Previous</span>Install &amp; first game</a>
+        <a class="pager__next" href="./replay.html"><span class="pager__dir">Next →</span>Replay mode</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div><a href="../">Home</a> · <a href="https://github.com/jakenherman/full-count">GitHub</a></div>
+    </div>
+  </footer>
+</body>
+</html>

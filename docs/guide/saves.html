@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Saves &amp; exports · full-count docs</title>
+  <meta name="description" content="Where full-count stores game files, how names are sanitized, and how to export the paper-style HTML scorecard." />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../"><span class="brand__dot">⚾</span> full-count <span class="brand__tag">docs</span></a>
+      <nav class="nav">
+        <a href="./" class="active">Docs</a>
+        <a href="./getting-started.html">Get started</a>
+        <a href="./scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs">
+    <aside class="sidebar" aria-label="Docs navigation">
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Introduction</p>
+        <ul>
+          <li><a href="./">Overview</a></li>
+          <li><a href="./why.html">Why full-count?</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Getting started</p>
+        <ul><li><a href="./getting-started.html">Install &amp; first game</a></li></ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Scoring</p>
+        <ul>
+          <li><a href="./scoring.html">Scoring reference</a></li>
+          <li><a href="./replay.html">Replay mode</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Files &amp; features</p>
+        <ul>
+          <li><a href="./saves.html" class="active">Saves &amp; exports</a></li>
+          <li><a href="./advanced-stats.html">Advanced stats</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Contributing</p>
+        <ul><li><a href="./development.html">Development</a></li></ul>
+      </div>
+    </aside>
+
+    <article class="content">
+      <p class="breadcrumbs"><a href="../">full-count</a> / <a href="./">Docs</a> / Saves &amp; exports</p>
+      <h1>Saves &amp; exports</h1>
+
+      <p>
+        full-count keeps all of your data in a single directory under your home folder:
+        <code>~/.full-count/</code>. Nothing is written anywhere else, and nothing is ever uploaded.
+      </p>
+
+<pre>~/.full-count/
+├── saves/       <span class="c"># JSON game saves</span>
+└── exports/     <span class="c"># HTML scorecards</span></pre>
+
+      <h2 id="saves">Save files</h2>
+
+      <p>
+        Press <kbd>F2</kbd> during scoring to open the save prompt. Type a name, press
+        <kbd>Enter</kbd>, and the current game state (plus every snapshot for
+        <a href="./replay.html">replay</a>) is written to
+        <code>~/.full-count/saves/&lt;name&gt;.json</code>.
+      </p>
+
+      <h3>Name sanitization</h3>
+      <ul>
+        <li>Leading and trailing whitespace is trimmed.</li>
+        <li>Spaces are replaced with hyphens.</li>
+        <li>Names are capped at <strong>64 characters</strong>.</li>
+        <li>Only letters, digits, hyphens, and underscores are kept.</li>
+        <li>Empty names are rejected.</li>
+      </ul>
+      <p>
+        For example, <code>Cubs vs Sox — 2026-04-22</code> becomes
+        <code>Cubs-vs-Sox--2026-04-22.json</code>.
+      </p>
+
+      <h3>Resuming</h3>
+<pre><span class="n">full-count</span> --load cubs-vs-sox           <span class="c"># bare name, looked up in ~/.full-count/saves/</span>
+<span class="n">full-count</span> --load cubs-vs-sox.json      <span class="c"># with extension — same lookup</span>
+<span class="n">full-count</span> --load ./backups/cubs.json    <span class="c"># relative path — used as-is</span>
+<span class="n">full-count</span> --load /abs/path/cubs.json    <span class="c"># absolute path — used as-is</span></pre>
+
+      <p>
+        Lookup order when the argument is a bare name or filename:
+      </p>
+
+      <ol>
+        <li>If the argument exists on disk as-is, use it.</li>
+        <li>Otherwise look inside <code>~/.full-count/saves/</code>.</li>
+        <li>If there's no extension, also try appending <code>.json</code>.</li>
+        <li>If none of those exist, proceed to the load call so you get a clear error.</li>
+      </ol>
+
+      <h3>Save file format</h3>
+      <p>
+        Save files are plain JSON — human-readable, diff-friendly, and stable enough to be edited
+        by hand if you really want to. A save contains two top-level fields:
+      </p>
+      <ul>
+        <li><code>game</code> — the current <code>GameState</code> (teams, lineups, inning, runners, stats).</li>
+        <li><code>snapshots</code> — an ordered list of historical <code>GameState</code>s, one per scored event, used for replay.</li>
+      </ul>
+
+      <div class="callout callout--tip">
+        <span class="callout__mark">Tip</span>
+        <div>
+          <p>
+            Backing up <code>~/.full-count/</code> is enough. It's fully portable between
+            machines — copy the directory over and your saves and exports come with you.
+          </p>
+        </div>
+      </div>
+
+      <h2 id="export">HTML scorecard export</h2>
+      <p>
+        When you end a game (<kbd>X</kbd> from the scoring screen) you land on the
+        <strong>summary screen</strong>. From there you can export a paper-style HTML scorecard
+        that looks like a traditional printed scorebook.
+      </p>
+
+      <p>
+        Exports are written to
+        <code>~/.full-count/exports/&lt;away&gt;-vs-&lt;home&gt;.html</code>. Open it in any
+        browser and hit <kbd>Ctrl/Cmd + P</kbd> if you want to print it.
+      </p>
+
+      <p>The scorecard renders:</p>
+      <ul>
+        <li>Team names, team colors, date.</li>
+        <li>Inning-by-inning R/H/E line score.</li>
+        <li>A batting grid with one at-bat per cell using standard scorecard symbols (<code>1B</code>, <code>K</code>, <code>6-3</code>, …), color-coded by event class.</li>
+        <li>Per-batter totals and per-pitcher decisions (W/L/S).</li>
+      </ul>
+
+      <div class="callout callout--note">
+        <span class="callout__mark">Note</span>
+        <div>
+          <p>
+            The export is self-contained HTML + inline CSS. No JavaScript, no external assets.
+            You can email it, upload it, or check it into a league repo and it just works.
+          </p>
+        </div>
+      </div>
+
+      <div class="pager">
+        <a href="./replay.html"><span class="pager__dir">← Previous</span>Replay mode</a>
+        <a class="pager__next" href="./advanced-stats.html"><span class="pager__dir">Next →</span>Advanced stats</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div><a href="../">Home</a> · <a href="https://github.com/jakenherman/full-count">GitHub</a></div>
+    </div>
+  </footer>
+</body>
+</html>

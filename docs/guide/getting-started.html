@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Install &amp; first game · full-count docs</title>
+  <meta name="description" content="Install Rust, build full-count, and score your first half inning in five minutes." />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../"><span class="brand__dot">⚾</span> full-count <span class="brand__tag">docs</span></a>
+      <nav class="nav">
+        <a href="./" class="active">Docs</a>
+        <a href="./getting-started.html">Get started</a>
+        <a href="./scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs">
+    <aside class="sidebar" aria-label="Docs navigation">
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Introduction</p>
+        <ul>
+          <li><a href="./">Overview</a></li>
+          <li><a href="./why.html">Why full-count?</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Getting started</p>
+        <ul><li><a href="./getting-started.html" class="active">Install &amp; first game</a></li></ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Scoring</p>
+        <ul>
+          <li><a href="./scoring.html">Scoring reference</a></li>
+          <li><a href="./replay.html">Replay mode</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Files &amp; features</p>
+        <ul>
+          <li><a href="./saves.html">Saves &amp; exports</a></li>
+          <li><a href="./advanced-stats.html">Advanced stats</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Contributing</p>
+        <ul><li><a href="./development.html">Development</a></li></ul>
+      </div>
+    </aside>
+
+    <article class="content">
+      <p class="breadcrumbs"><a href="../">full-count</a> / <a href="./">Docs</a> / Getting started</p>
+      <h1>Install &amp; first game</h1>
+      <p>
+        You'll need <a href="https://rustup.rs/">Rust</a> 1.75 or newer. Everything else comes from
+        <code>cargo</code>.
+      </p>
+
+      <h2>1. Install Rust</h2>
+      <p>If you don't already have it:</p>
+<pre><span class="n">curl</span> --proto <span class="s">'=https'</span> --tlsv1.2 -sSf https://sh.rustup.rs | sh
+<span class="c"># or: brew install rustup-init &amp;&amp; rustup-init</span></pre>
+
+      <h2>2. Clone and build</h2>
+<pre><span class="n">git</span> clone https://github.com/jakenherman/full-count.git
+<span class="n">cd</span> full-count
+<span class="n">cargo</span> build --release
+<span class="c"># want the opt-in stats? use:</span>
+<span class="c"># cargo build --release --features advanced-stats</span></pre>
+
+      <p>The binary ends up at <code>target/release/full-count</code>. Symlink or move it onto your <code>PATH</code> if you like.</p>
+
+      <div class="callout callout--tip">
+        <span class="callout__mark">Tip</span>
+        <div>
+          <p>
+            During development, <code>cargo run --release</code> works fine. The release profile
+            matters: a debug build will feel sluggish on every keystroke.
+          </p>
+        </div>
+      </div>
+
+      <h2>3. Start a new game</h2>
+<pre><span class="n">full-count</span></pre>
+
+      <p>
+        You'll land on the <strong>title screen</strong>. Use <kbd>↑</kbd>/<kbd>↓</kbd> (or
+        <kbd>j</kbd>/<kbd>k</kbd>) to move the cursor, <kbd>Enter</kbd> to select. Choose
+        <em>New game</em> to jump into setup.
+      </p>
+
+      <h3>Setup</h3>
+      <p>
+        Fill in the away and home team names, pick a color for each (<kbd>←</kbd>/<kbd>→</kbd>),
+        then type the lineup for both teams. <kbd>Tab</kbd> moves forward, <kbd>Shift+Tab</kbd>
+        moves back. With the <code>advanced-stats</code> feature you'll also be prompted for a
+        season batting average per hitter — see <a href="./advanced-stats.html">Advanced stats</a>.
+      </p>
+
+      <p>
+        Once every field is filled, <kbd>F3</kbd> starts the game.
+      </p>
+
+      <h2>4. Your first at-bat</h2>
+
+      <p>The <strong>scoring screen</strong> shows five panels: the scoreboard, the current at-bat,
+      batter/pitcher lines, the play log, and a prompt bar. You type keystrokes; the prompt bar tells
+      you what's legal at any moment. Here's a line-off homerun and an easy strikeout:</p>
+
+<pre><span class="c"># Leadoff batter takes a ball, then a strike, then yanks one over the wall.</span>
+<span class="n">B</span>                   <span class="c"># 1-0</span>
+<span class="n">S</span>                   <span class="c"># 1-1</span>
+<span class="n">H</span>                   <span class="c"># home run — RBI prompt appears</span>
+<span class="n">1</span> <span class="n">Enter</span>             <span class="c"># 1 RBI (nobody on base)</span>
+
+<span class="c"># Next batter watches three go by.</span>
+<span class="n">S</span> <span class="n">S</span> <span class="n">L</span>               <span class="c"># strike, strike, strikeout looking</span></pre>
+
+      <p>
+        After every play the scoreboard, stat lines, and play log update. If you made a mistake,
+        press <kbd>U</kbd> to undo — you can walk backward up to 100 steps.
+      </p>
+
+      <div class="callout">
+        <span class="callout__mark">Esc</span>
+        <div>
+          <p>
+            Any prompt that accepts typed input — fielder positions, RBI, batter names, save
+            filenames — can be cancelled with <kbd>Esc</kbd>, which returns you to the normal
+            at-bat state without changing anything.
+          </p>
+        </div>
+      </div>
+
+      <h2>5. Save and quit</h2>
+      <p>
+        Press <kbd>F2</kbd> at any point to open the save prompt. Type a name (or accept the
+        suggestion) and <kbd>Enter</kbd>. The game is written to
+        <code>~/.full-count/saves/&lt;name&gt;.json</code>.
+      </p>
+      <p>
+        <kbd>Q</kbd> quits at any point. <kbd>X</kbd> ends the game and jumps to the summary
+        screen where you can export the paper-style scorecard.
+      </p>
+
+      <h2>6. Resume a game</h2>
+<pre><span class="n">full-count</span> --load cubs-vs-sox                <span class="c"># resume scoring</span>
+<span class="n">full-count</span> --load cubs-vs-sox --replay      <span class="c"># walk through it pitch-by-pitch</span></pre>
+
+      <p>
+        <code>--load</code> accepts a bare name (<code>cubs-vs-sox</code>), a file name with
+        extension (<code>cubs-vs-sox.json</code>), or an absolute/relative path. Bare names are
+        looked up inside <code>~/.full-count/saves/</code>.
+      </p>
+
+      <p>
+        That's the whole loop. For the full set of keystrokes, see the
+        <a href="./scoring.html">scoring reference</a>.
+      </p>
+
+      <div class="pager">
+        <a href="./why.html"><span class="pager__dir">← Previous</span>Why full-count?</a>
+        <a class="pager__next" href="./scoring.html"><span class="pager__dir">Next →</span>Scoring reference</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div><a href="../">Home</a> · <a href="https://github.com/jakenherman/full-count">GitHub</a></div>
+    </div>
+  </footer>
+</body>
+</html>

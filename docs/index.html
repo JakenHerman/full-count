@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>full-count — Every pitch. Every play. Every out.</title>
+  <meta name="description" content="A keyboard-driven TUI for scoring baseball games in real time. Built in Rust with ratatui." />
+  <meta property="og:title" content="full-count — Score baseball in the terminal" />
+  <meta property="og:description" content="Pitch-by-pitch tracking, live scoreboards, replay mode, and a paper-style HTML scorecard export — all from your keyboard." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="./assets/baseball-comic.jpeg" />
+  <meta name="theme-color" content="#f5efe0" />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="./">
+        <span class="brand__dot">⚾</span> full-count
+        <span class="brand__tag">v0.1 · rust</span>
+      </a>
+      <nav class="nav">
+        <a href="./guide/">Docs</a>
+        <a href="./guide/getting-started.html">Get started</a>
+        <a href="./guide/scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.074.547-.174.547-.386 0-.19-.007-.693-.011-1.36-2.226.483-2.696-1.073-2.696-1.073-.364-.924-.888-1.17-.888-1.17-.725-.495.055-.485.055-.485.801.056 1.222.823 1.222.823.712 1.22 1.868.868 2.324.663.072-.516.279-.868.507-1.068-1.777-.2-3.644-.888-3.644-3.953 0-.873.313-1.587.823-2.147-.083-.202-.357-1.015.078-2.117 0 0 .672-.215 2.2.82A7.66 7.66 0 0 1 8 4.46c.68.003 1.364.092 2.003.27 1.527-1.035 2.197-.82 2.197-.82.437 1.102.163 1.915.08 2.117.513.56.823 1.274.823 2.147 0 3.073-1.87 3.75-3.653 3.947.287.247.543.735.543 1.48 0 1.07-.01 1.932-.01 2.195 0 .214.144.463.55.385A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="hero__eyebrow">Keyboard-first · TUI · Rust</span>
+        <h1>Score a baseball game <em>without ever&nbsp;touching the mouse.</em></h1>
+        <p class="hero__lede">
+          full-count is a terminal scorekeeping app for people who actually watch the game.
+          Every ball, every strike, every 6&#8209;4&#8209;3 — tracked in real time, with a
+          live scoreboard, replay mode, and a gorgeous paper-style HTML scorecard when the
+          last out drops.
+        </p>
+        <div class="hero__cta">
+          <a class="btn btn--primary" href="./guide/getting-started.html">Get started →</a>
+          <a class="btn btn--ghost" href="./guide/why.html">Why full-count?</a>
+        </div>
+        <div class="hero__meta">
+          <span>Rust 1.75+</span>
+          <span>137 tests</span>
+          <span>MIT licensed</span>
+          <span>Zero network</span>
+        </div>
+      </div>
+
+      <aside class="hero__art" aria-hidden="true">
+<pre>  _____ _   _ _     _       ____ ___  _   _ _   _ _____
+ |  ___| | | | |   | |     / ___/ _ \| | | | \ | |_   _|
+ | |_  | | | | |   | |    | |  | | | | | | |  \| | | |
+ |  _| | |_| | |___| |___ | |__| |_| | |_| | |\  | | |
+ |_|    \___/|_____|_____| \____\___/ \___/|_| \_| |_|
+
+         ⚾ Every pitch. Every play. Every out. ⚾</pre>
+        <div class="scorebug">
+          <span class="label">INN</span>
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+          <span>6</span><span>7</span><span>8</span><span>9</span>
+          <span class="label">R</span><span class="label">H</span><span class="label">E</span>
+          <span class="row-team">CUBS</span>
+          <span>0</span><span>2</span><span>0</span><span>1</span><span>0</span>
+          <span>0</span><span>3</span><span>0</span><span>0</span>
+          <span class="tot">6</span><span class="tot">9</span><span class="tot">1</span>
+          <span class="row-team">SOX</span>
+          <span>1</span><span>0</span><span>0</span><span>0</span><span>2</span>
+          <span>0</span><span>1</span><span>0</span><span>x</span>
+          <span class="tot">4</span><span class="tot">7</span><span class="tot">0</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section">
+      <p class="section__title">Built for the booth</p>
+      <h2 class="section__headline">Everything a scorekeeper needs, nothing a mouse wants.</h2>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature__icon">01 · Pitching</div>
+          <h3>Pitch-by-pitch tracking</h3>
+          <p>Balls, strikes, and fouls with automatic walk and strikeout detection. The count resets itself — you just call it.</p>
+        </div>
+        <div class="feature">
+          <div class="feature__icon">02 · Results</div>
+          <h3>Full at-bat vocabulary</h3>
+          <p>Hits, outs, walks, errors, double plays, sac flies, fielder's choice — plus standard fielder notation like <code>6-4-3</code>, <code>F8</code>, <code>E6</code>.</p>
+        </div>
+        <div class="feature">
+          <div class="feature__icon">03 · Scoreboard</div>
+          <h3>Live line score</h3>
+          <p>Inning-by-inning R/H/E updates as you score, with batter and pitcher stat lines recomputed after every play.</p>
+        </div>
+        <div class="feature">
+          <div class="feature__icon">04 · Roster</div>
+          <h3>Mid-game substitutions</h3>
+          <p>Swap in a new hitter without losing the replaced batter's line. Unlimited relievers with W/L/S decisions at game end.</p>
+        </div>
+        <div class="feature">
+          <div class="feature__icon">05 · Runners</div>
+          <h3>Manual runner advancement</h3>
+          <p>Wild pitches, stolen bases, passed balls, balks — all with the right stat credited to the right player.</p>
+        </div>
+        <div class="feature">
+          <div class="feature__icon">06 · Time</div>
+          <h3>Save, resume, replay</h3>
+          <p>JSON saves under <code>~/.full-count/saves/</code>, up to 100 levels of undo, and a read-only pitch-by-pitch replay mode.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="two-col">
+        <div>
+          <p class="section__title">The two-minute demo</p>
+          <h2 class="section__headline">Score a half inning in about a dozen keystrokes.</h2>
+          <p>
+            Lead-off batter singles, steals second, moves to third on a groundout to short,
+            and scores on a sac fly. Here's the whole sequence:
+          </p>
+          <div class="hero__meta" style="margin-top:1.25rem">
+            <span>1 RBI credited</span>
+            <span>1 run scored</span>
+            <span>1 hit, 0 errors</span>
+            <span>3 outs? Not yet.</span>
+          </div>
+        </div>
+        <div>
+<pre><span class="c"># single to lead off</span>
+<span class="n">1</span> <span class="n">Enter</span>               <span class="c"># RBI prompt → 0 RBI</span>
+
+<span class="c"># stolen base</span>
+<span class="n">A</span> <span class="n">1</span> <span class="n">2</span> <span class="n">S</span>            <span class="c"># advance 1st→2nd, reason: SB</span>
+
+<span class="c"># 6-3 groundout, runner to third</span>
+<span class="n">G</span> <span class="n">6</span>-<span class="n">3</span> <span class="n">Enter</span>        <span class="c"># (runner advances on contact)</span>
+
+<span class="c"># sac fly to center, run scores</span>
+<span class="n">V</span> <span class="n">8</span> <span class="n">Enter</span>            <span class="c"># 8 = CF</span>
+<span class="n">1</span> <span class="n">Enter</span>               <span class="c"># RBI prompt → 1 RBI</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section__title">Scoring reference, at a glance</p>
+      <h2 class="section__headline">A few dozen keys. A whole season's worth of plays.</h2>
+
+      <h4>Pitches</h4>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>B</kbd> Ball</div>
+        <div class="keygrid__item"><kbd>S</kbd> Strike (swinging / looking)</div>
+        <div class="keygrid__item"><kbd>F</kbd> Foul</div>
+      </div>
+
+      <h4>At-bat results</h4>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>1</kbd> Single</div>
+        <div class="keygrid__item"><kbd>2</kbd> Double</div>
+        <div class="keygrid__item"><kbd>3</kbd> Triple</div>
+        <div class="keygrid__item"><kbd>H</kbd> Home run</div>
+        <div class="keygrid__item"><kbd>K</kbd> Strikeout (swinging)</div>
+        <div class="keygrid__item"><kbd>L</kbd> Strikeout (looking)</div>
+        <div class="keygrid__item"><kbd>W</kbd> Walk</div>
+        <div class="keygrid__item"><kbd>P</kbd> Hit by pitch</div>
+        <div class="keygrid__item"><kbd>C</kbd> Fielder's choice</div>
+      </div>
+
+      <h4>Fielder prompts</h4>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>G</kbd> Groundout &rarr; <code>6-3</code></div>
+        <div class="keygrid__item"><kbd>D</kbd> Double play &rarr; <code>6-4-3</code></div>
+        <div class="keygrid__item"><kbd>O</kbd> Flyout &rarr; <code>F8</code></div>
+        <div class="keygrid__item"><kbd>E</kbd> Error &rarr; <code>E6</code></div>
+        <div class="keygrid__item"><kbd>V</kbd> Sacrifice fly &rarr; <code>8</code></div>
+      </div>
+
+      <h4>Everything else</h4>
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>A</kbd> Advance runner</div>
+        <div class="keygrid__item"><kbd>R</kbd> Batter change</div>
+        <div class="keygrid__item"><kbd>Tab</kbd> Pitcher change</div>
+        <div class="keygrid__item"><kbd>U</kbd> Undo</div>
+        <div class="keygrid__item"><kbd>F2</kbd> Save</div>
+        <div class="keygrid__item"><kbd>X</kbd> End game</div>
+        <div class="keygrid__item"><kbd>Q</kbd> Quit</div>
+      </div>
+
+      <p style="margin-top:0.5rem;color:var(--muted);">
+        See the <a href="./guide/scoring.html">complete scoring reference</a> for every prompt, edge case,
+        and RBI dialog.
+      </p>
+    </section>
+
+    <section class="bigcta">
+      <div>
+        <h2>Ready to call the game?</h2>
+        <p>Install Rust, clone the repo, and you're scoring in under a minute.</p>
+      </div>
+      <div>
+        <a class="btn btn--primary" href="./guide/getting-started.html" style="background:var(--bg);color:var(--ink);">Read the docs →</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · &copy; 2026 · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div>
+        <a href="./guide/">Docs</a> ·
+        <a href="https://github.com/jakenherman/full-count">GitHub</a> ·
+        <a href="./guide/development.html#changelog">Changelog</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

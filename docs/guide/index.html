@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Introduction · full-count docs</title>
+  <meta name="description" content="What full-count is, how it works, and how to get around the docs." />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../"><span class="brand__dot">⚾</span> full-count <span class="brand__tag">docs</span></a>
+      <nav class="nav">
+        <a href="./" class="active">Docs</a>
+        <a href="./getting-started.html">Get started</a>
+        <a href="./scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs">
+    <aside class="sidebar" aria-label="Docs navigation">
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Introduction</p>
+        <ul>
+          <li><a href="./" class="active">Overview</a></li>
+          <li><a href="./why.html">Why full-count?</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Getting started</p>
+        <ul>
+          <li><a href="./getting-started.html">Install &amp; first game</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Scoring</p>
+        <ul>
+          <li><a href="./scoring.html">Scoring reference</a></li>
+          <li><a href="./replay.html">Replay mode</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Files &amp; features</p>
+        <ul>
+          <li><a href="./saves.html">Saves &amp; exports</a></li>
+          <li><a href="./advanced-stats.html">Advanced stats</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Contributing</p>
+        <ul>
+          <li><a href="./development.html">Development</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <article class="content">
+      <p class="breadcrumbs"><a href="../">full-count</a> / Docs</p>
+      <h1>Introduction</h1>
+
+      <p>
+        <strong>full-count</strong> is a keyboard-driven TUI (terminal user interface) for scoring baseball games
+        in real time. It's written in Rust with
+        <a href="https://github.com/ratatui-org/ratatui">ratatui</a> and designed for a single person, sitting in
+        front of a game, with two hands free and no patience for menus.
+      </p>
+
+      <p>
+        Every feature is built around that premise: single-letter keys for pitches and at-bat results,
+        fielder notation you already know (<code>6-4-3</code>, <code>F8</code>, <code>E6</code>), and a live
+        scoreboard that updates as you score. You never leave the keyboard.
+      </p>
+
+      <div class="callout callout--tip">
+        <span class="callout__mark">TL;DR</span>
+        <div>
+          <p>
+            Head to <a href="./getting-started.html">Install &amp; first game</a> to build the binary and
+            score your first half inning in under five minutes. If you want the <em>why</em> first,
+            read <a href="./why.html">Why full-count?</a>.
+          </p>
+        </div>
+      </div>
+
+      <h2>What you get</h2>
+
+      <ul>
+        <li><strong>Pitch-by-pitch tracking</strong> — balls, strikes, and fouls with automatic walk and strikeout detection.</li>
+        <li><strong>Full at-bat vocabulary</strong> — hits, outs, walks, errors, double plays, sac flies, fielder's choice.</li>
+        <li><strong>Standard fielder notation</strong> — <code>6-4-3</code> double play, <code>F8</code> flyout, <code>E6</code> error.</li>
+        <li><strong>Live line score</strong> — inning-by-inning R/H/E, updated as you score.</li>
+        <li><strong>Batter &amp; pitcher stat lines</strong> — recomputed automatically after every play.</li>
+        <li><strong>Mid-game substitutions</strong> — swap batters without losing the replaced line; unlimited relievers with W/L/S at game end.</li>
+        <li><strong>Manual runner advancement</strong> — wild pitches, stolen bases, passed balls, balks, all properly credited.</li>
+        <li><strong>Save &amp; resume</strong> — JSON saves under <code>~/.full-count/saves/</code>.</li>
+        <li><strong>Replay mode</strong> — step through any saved game pitch-by-pitch, read-only.</li>
+        <li><strong>Undo</strong> — up to 100 levels.</li>
+        <li><strong>Scorecard export</strong> — render a paper-style HTML scorecard when the game ends.</li>
+        <li><strong>Advanced stats (opt-in)</strong> — 2B/3B/HR, SB/CS, LOB, WP, BF, season AVG, with <code>--features advanced-stats</code>.</li>
+      </ul>
+
+      <h2>How the docs are organized</h2>
+
+      <table>
+        <thead><tr><th>Section</th><th>What's in it</th></tr></thead>
+        <tbody>
+          <tr><td><a href="./why.html">Why full-count?</a></td><td>The motivation: why a TUI, why keyboard-only, why Rust.</td></tr>
+          <tr><td><a href="./getting-started.html">Getting started</a></td><td>Install Rust, build the binary, score your first at-bat.</td></tr>
+          <tr><td><a href="./scoring.html">Scoring reference</a></td><td>Every key, every prompt, every edge case.</td></tr>
+          <tr><td><a href="./replay.html">Replay mode</a></td><td>Step through saved games pitch-by-pitch.</td></tr>
+          <tr><td><a href="./saves.html">Saves &amp; exports</a></td><td>Where files live, how names are sanitized, the HTML scorecard.</td></tr>
+          <tr><td><a href="./advanced-stats.html">Advanced stats</a></td><td>The opt-in feature flag and what it unlocks.</td></tr>
+          <tr><td><a href="./development.html">Development</a></td><td>Building, testing, and contributing.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>System requirements</h2>
+      <ul>
+        <li><a href="https://rustup.rs/">Rust</a> 1.75 or newer.</li>
+        <li>A terminal emulator with 256-color support and Unicode (any modern terminal will do).</li>
+        <li>No network connection — full-count never talks to the outside world.</li>
+      </ul>
+
+      <div class="pager">
+        <span></span>
+        <a class="pager__next" href="./why.html">
+          <span class="pager__dir">Next →</span>
+          Why full-count?
+        </a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div>
+        <a href="../">Home</a> ·
+        <a href="https://github.com/jakenherman/full-count">GitHub</a> ·
+        <a href="./development.html#changelog">Changelog</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

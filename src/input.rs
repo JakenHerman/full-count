@@ -29,15 +29,11 @@ pub fn handle_event(app: &mut App, event: Event) {
 
 fn handle_title_key(app: &mut App, key: KeyEvent) {
     match key.code {
-        KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') => {
-            if app.title_cursor > 0 {
-                app.title_cursor -= 1;
-            }
+        KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') if app.title_cursor > 0 => {
+            app.title_cursor -= 1;
         }
-        KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') => {
-            if app.title_cursor < 2 {
-                app.title_cursor += 1;
-            }
+        KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') if app.title_cursor < 2 => {
+            app.title_cursor += 1;
         }
         KeyCode::Enter => match app.title_cursor {
             0 => app.screen = AppScreen::Setup,
@@ -224,18 +220,14 @@ fn handle_waiting(app: &mut App, key: KeyEvent) {
         }
 
         // ── Undo ──────────────────────────────────────────────────────────
-        KeyCode::Char('u') | KeyCode::Char('U') => {
-            if !app.undo() {
-                app.set_status("Nothing to undo.");
-            }
+        KeyCode::Char('u') | KeyCode::Char('U') if !app.undo() => {
+            app.set_status("Nothing to undo.");
         }
 
         // ── Play log scroll ───────────────────────────────────────────────
         // Note: 'k' (vim up) is already bound to strikeout swinging; use ↑ to scroll up.
-        KeyCode::Up => {
-            if app.play_log_scroll > 0 {
-                app.play_log_scroll -= 1;
-            }
+        KeyCode::Up if app.play_log_scroll > 0 => {
+            app.play_log_scroll -= 1;
         }
         KeyCode::Down | KeyCode::Char('j') => {
             let Ok(game) = app.game() else { return };
@@ -560,23 +552,17 @@ fn handle_load_key(app: &mut App, key: KeyEvent) {
         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => {
             app.screen = crate::app::AppScreen::Title;
         }
-        KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') => {
-            if app.load_cursor > 0 {
-                app.load_cursor -= 1;
-            }
+        KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') if app.load_cursor > 0 => {
+            app.load_cursor -= 1;
         }
-        KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') => {
-            if !app.load_slots.is_empty() {
-                app.load_cursor = (app.load_cursor + 1).min(app.load_slots.len() - 1);
-            }
+        KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') if !app.load_slots.is_empty() => {
+            app.load_cursor = (app.load_cursor + 1).min(app.load_slots.len() - 1);
         }
         KeyCode::Char('g') => {
             app.load_cursor = 0;
         }
-        KeyCode::Char('G') => {
-            if !app.load_slots.is_empty() {
-                app.load_cursor = app.load_slots.len() - 1;
-            }
+        KeyCode::Char('G') if !app.load_slots.is_empty() => {
+            app.load_cursor = app.load_slots.len() - 1;
         }
         KeyCode::Enter => match app.load_selected() {
             Ok(()) => app.set_status("Game loaded. Resume scoring."),

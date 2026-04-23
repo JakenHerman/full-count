@@ -16,22 +16,22 @@ A keyboard-driven TUI for scoring baseball games in real time. Built in Rust wit
          ⚾ Every pitch. Every play. Every out. ⚾
 ```
 
-## Features
+## Documentation
 
-- **Pitch-by-pitch tracking** — balls, strikes, fouls with automatic walk/strikeout detection
-- **Full at-bat vocabulary** — hits, outs, walks, errors, double plays, sac flies, fielder's choice
-- **Standard fielder notation** — `6-4-3` double play, `F8` flyout, `E6` error
-- **Live scoreboard** — inning-by-inning line score with R/H/E
-- **Batter & pitcher stat lines** — updated automatically after every play
-- **Batter changes** — swap in a new hitter mid-game without losing the replaced batter's line
-- **Pitcher changes** — unlimited relievers with W/L/S decisions at game end
-- **Manual runner advancement** — wild pitches, stolen bases, passed balls, balks
-- **Save & resume** — JSON saves at `~/.full-count/saves/`
-- **Game replay** — step through any saved game pitch-by-pitch in read-only mode
-- **Undo** — up to 100 levels
-- **Advanced stats** — compile with `--features advanced-stats` for 2B/3B/HR, SB/CS, LOB, WP, BF, season AVG
+Full docs — install guide, scoring reference, replay mode, saves/exports, and
+contributor notes — live at **[the documentation site](https://jakenherman.github.io/full-count/)**,
+or in [`docs/`](./docs/) if you prefer to browse them locally.
 
-## Install
+- **[Introduction](https://jakenherman.github.io/full-count/guide/)** — what full-count is and how it works.
+- **[Why full-count?](https://jakenherman.github.io/full-count/guide/why.html)** — the case for a keyboard-first TUI.
+- **[Install & first game](https://jakenherman.github.io/full-count/guide/getting-started.html)** — score a half inning in five minutes.
+- **[Scoring reference](https://jakenherman.github.io/full-count/guide/scoring.html)** — every key, every prompt.
+- **[Replay mode](https://jakenherman.github.io/full-count/guide/replay.html)** — step through saved games pitch-by-pitch.
+- **[Saves & exports](https://jakenherman.github.io/full-count/guide/saves.html)** — files, paths, and the HTML scorecard.
+- **[Advanced stats](https://jakenherman.github.io/full-count/guide/advanced-stats.html)** — the opt-in Cargo feature.
+- **[Development](https://jakenherman.github.io/full-count/guide/development.html)** — building, testing, contributing.
+
+## Quick start
 
 ### Prebuilt binaries (recommended)
 
@@ -88,7 +88,7 @@ Version history and notable changes: [`CHANGELOG.md`](CHANGELOG.md).
 
 Optional later steps: publish to [crates.io](https://crates.io/) with `cargo publish` so users can run `cargo install full-count` (after claiming the crate name and adding any metadata crates.io requires).
 
-## Quick Start
+## Usage
 
 ```bash
 full-count                              # new game
@@ -96,31 +96,18 @@ full-count --load cubs-vs-sox           # resume scoring
 full-count --load cubs-vs-sox --replay  # step through pitch-by-pitch
 ```
 
-`--load` accepts a bare name, `name.json`, or a full path. Bare names are looked up in `~/.full-count/saves/`.
+## Feature highlights
 
-## Scoring Keys
-
-**Pitches:** `B` ball · `S` strike · `F` foul
-
-**At-bat results:** `1` single · `2` double · `3` triple · `H` homer · `K` K-swing · `L` K-look · `W` walk · `P` HBP · `C` FC
-
-**Fielder prompts:** `G` groundout · `D` double play · `O` flyout · `E` error · `V` sac fly — enter positions like `6-3` or `6-4-3`
-
-**Other:** `A` advance runner · `R` batter change · `Tab` pitcher change · `U` undo · `F2` save · `X` end game · `Q` quit
-
-After hits/walks/FC, an RBI prompt appears — type `0`–`4` and `Enter`. Press `Esc` to cancel any prompt.
-
-## Replay Mode
-
-Load a saved game in replay mode from the load menu (`R` instead of `Enter`) or via CLI (`--replay`).
-
-`←`/`H` step back · `→`/`L` step forward · `g` jump to start · `G` jump to end · `Esc` exit
-
-Replay data is captured automatically during scoring and persisted with each save.
-
-## Save Files
-
-Games save to `~/.full-count/saves/<name>.json`. Names are sanitized (spaces → hyphens, max 64 chars). Save with `F2` during a game, resume with `--load`.
+- Pitch-by-pitch tracking with automatic walks and strikeouts
+- Hits, outs, walks, errors, double plays, sac flies, fielder's choice
+- Standard fielder notation (`6-4-3`, `F8`, `E6`)
+- Live R/H/E line score, batter & pitcher stat lines
+- Mid-game batter and pitcher substitutions
+- Manual runner advancement (SB, CS, WP, PB, balk)
+- JSON saves under `~/.full-count/saves/` with full replay snapshots
+- Pitch-by-pitch replay mode and up to 100 levels of undo
+- Paper-style HTML scorecard export
+- Opt-in `advanced-stats` Cargo feature (2B/3B/HR, SB/CS, LOB, WP, BF, season AVG)
 
 ## Astros Scoreability Pull Script
 
@@ -149,10 +136,16 @@ Helpful flags:
 ## Development
 
 ```bash
-cargo test              # run the test suite
-cargo build --release   # release build
+cargo test                              # run the test suite
+cargo test --features advanced-stats
+cargo build --release                   # release build
+cargo fmt --check
+cargo clippy -- -D warnings
 ```
+
+See [`AGENTS.md`](./AGENTS.md) for contributor rules — especially the
+documentation-with-code expectations if you're using an AI assistant.
 
 ## License
 
-MIT
+[MIT](./LICENSE)

@@ -2,6 +2,11 @@
 name = "full-count"
 version = "0.1.0"
 edition = "2021"
+description = "Keyboard-driven TUI for scoring baseball games in real time"
+readme = "README.md"
+repository = "https://github.com/jakenherman/full-count"
+license = "MIT"
+rust-version = "1.75"
 
 [[bin]]
 name = "full-count"

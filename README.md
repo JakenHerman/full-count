@@ -33,12 +33,60 @@ A keyboard-driven TUI for scoring baseball games in real time. Built in Rust wit
 
 ## Install
 
+### Prebuilt binaries (recommended)
+
+1. Open [**Releases**](https://github.com/jakenherman/full-count/releases) and download the archive for your platform:
+   - **Linux (x86_64):** `full-count-*-x86_64-unknown-linux-gnu.tar.gz`
+   - **macOS (Apple Silicon):** `full-count-*-aarch64-apple-darwin.tar.gz`
+   - **macOS (Intel):** `full-count-*-x86_64-apple-darwin.tar.gz`
+   - **Windows (x86_64):** `full-count-*-x86_64-pc-windows-msvc.zip`
+2. Extract the `full-count` executable (or `full-count.exe` on Windows) and put it on your `PATH`, or run it from the folder where you extracted it.
+
+Release builds use the default feature set. For **advanced stats**, install from source with `--features advanced-stats` (see below).
+
+### Install with Cargo (no Rust install of the binary via crates.io yet)
+
+If you have [Rust](https://rustup.rs/) installed:
+
 ```bash
-cargo build --release
-# optionally: cargo build --release --features advanced-stats
+cargo install --git https://github.com/jakenherman/full-count.git --locked
+# optional:
+cargo install --git https://github.com/jakenherman/full-count.git --locked --features advanced-stats
 ```
 
-Requires [Rust](https://rustup.rs/) 1.75+.
+`cargo install` compiles on your machine and places `full-count` in `~/.cargo/bin` (ensure that directory is on your `PATH`).
+
+### Build from source
+
+```bash
+git clone https://github.com/jakenherman/full-count.git
+cd full-count
+cargo build --release
+# Binary: target/release/full-count
+# optional: cargo build --release --features advanced-stats
+```
+
+Requires Rust **1.75+** (see `rust-version` in `Cargo.toml`).
+
+### Changelog
+
+Version history and notable changes: [`CHANGELOG.md`](CHANGELOG.md).
+
+### Cutting a release (maintainers)
+
+1. Update `CHANGELOG.md`: move items from **Unreleased** into a dated section, set the version and compare links at the bottom.
+2. Set `version` in `Cargo.toml` to match the release (for example `0.2.0`).
+3. Commit, then tag and push:
+
+   ```bash
+   git tag -a v0.2.0 -m "v0.2.0"
+   git push
+   git push --tags
+   ```
+
+4. The [**Release**](.github/workflows/release.yml) workflow builds Linux, Windows, and macOS artifacts and attaches them to a **[GitHub Release](https://github.com/jakenherman/full-count/releases)** for that tag. Edit the release notes if you want more detail than the auto-generated summary.
+
+Optional later steps: publish to [crates.io](https://crates.io/) with `cargo publish` so users can run `cargo install full-count` (after claiming the crate name and adding any metadata crates.io requires).
 
 ## Quick Start
 
@@ -101,7 +149,7 @@ Helpful flags:
 ## Development
 
 ```bash
-cargo test              # 137 tests
+cargo test              # run the test suite
 cargo build --release   # release build
 ```
 

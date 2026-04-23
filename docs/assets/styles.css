@@ -234,17 +234,31 @@ tbody tr:hover { background: rgba(200, 16, 46, 0.04); }
 .nav a:hover { color: var(--red); border-bottom-color: var(--red); }
 .nav a.active { color: var(--red); border-bottom-color: var(--red); }
 
-.nav__gh {
+.nav a.nav__gh {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  background: transparent;
+  color: var(--ink);
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  line-height: 1.2;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.nav a.nav__gh svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.nav a.nav__gh:hover {
   background: var(--ink);
   color: var(--bg);
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  font-weight: 600;
+  border-color: var(--ink);
+  transform: translateY(-1px);
 }
-.nav__gh:hover { background: var(--red); color: var(--bg); border-bottom-color: transparent; }
 
 .site-footer {
   margin-top: 4rem;
@@ -664,6 +678,7 @@ tbody tr:hover { background: rgba(200, 16, 46, 0.04); }
     background: var(--bg-card);
   }
 
-  .nav__gh { padding: 0.3rem 0.6rem; font-size: 0.85rem; }
+  .nav a.nav__gh { padding: 0.3rem 0.65rem; font-size: 0.8rem; }
+  .nav a.nav__gh svg { width: 13px; height: 13px; }
   .nav { gap: 0.7rem; font-size: 0.9rem; }
 }

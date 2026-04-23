@@ -19,7 +19,10 @@
         <a href="./" class="active">Docs</a>
         <a href="./getting-started.html">Get started</a>
         <a href="./scoring.html">Scoring keys</a>
-        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.074.547-.174.547-.386 0-.19-.007-.693-.011-1.36-2.226.483-2.696-1.073-2.696-1.073-.364-.924-.888-1.17-.888-1.17-.725-.495.055-.485.055-.485.801.056 1.222.823 1.222.823.712 1.22 1.868.868 2.324.663.072-.516.279-.868.507-1.068-1.777-.2-3.644-.888-3.644-3.953 0-.873.313-1.587.823-2.147-.083-.202-.357-1.015.078-2.117 0 0 .672-.215 2.2.82A7.66 7.66 0 0 1 8 4.46c.68.003 1.364.092 2.003.27 1.527-1.035 2.197-.82 2.197-.82.437 1.102.163 1.915.08 2.117.513.56.823 1.274.823 2.147 0 3.073-1.87 3.75-3.653 3.947.287.247.543.735.543 1.48 0 1.07-.01 1.932-.01 2.195 0 .214.144.463.55.385A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
       </nav>
     </div>
   </header>
@@ -128,23 +131,30 @@
         updating the site. Please keep those files honest.
       </p>
 
-      <h2 id="changelog">Changelog</h2>
-
-      <h3>Unreleased</h3>
-      <ul>
-        <li>Static documentation site under <code>docs/</code>, deployed to GitHub Pages.</li>
-        <li>Landing page, multi-section guide, and contributor docs.</li>
-        <li><code>AGENTS.md</code> and Copilot instructions enforcing docs-with-code updates.</li>
-      </ul>
-
-      <h3>0.1.0</h3>
-      <ul>
-        <li>Initial release.</li>
-        <li>Pitch-by-pitch scoring, live line score, batter &amp; pitcher lines.</li>
-        <li>Save / load with full replay snapshots, up to 100 levels of undo.</li>
-        <li>Paper-style HTML scorecard export.</li>
-        <li>Opt-in <code>advanced-stats</code> feature with season AVG, 2B/3B/HR, SB/CS, LOB, WP, BF.</li>
-      </ul>
+      <h2 id="changelog">Changelog &amp; releases</h2>
+      <p>
+        Release notes live in
+        <a href="https://github.com/jakenherman/full-count/blob/master/CHANGELOG.md"><code>CHANGELOG.md</code></a>
+        on GitHub. Prebuilt binaries for Linux, macOS, and Windows are attached to each entry on the
+        <a href="https://github.com/jakenherman/full-count/releases">Releases page</a>.
+      </p>
+      <p>
+        Both are generated automatically by
+        <a href="https://release-plz.ieni.dev/"><code>release-plz</code></a> from
+        <a href="https://www.conventionalcommits.org/">Conventional Commit</a> messages on
+        <code>master</code> — there is nothing to hand-edit on this page.
+      </p>
+      <h3 id="release-flow">How releases happen</h3>
+      <ol>
+        <li>Land commits on <code>master</code> with conventional subjects
+          (<code>feat:</code>, <code>fix:</code>, <code>feat!:</code>, etc.).</li>
+        <li><code>release-plz</code> opens or updates a <code>chore: release</code> pull request
+          with the next version, a refreshed <code>Cargo.lock</code>, and the new
+          <code>CHANGELOG.md</code> entry.</li>
+        <li>Merging that PR tags the release and creates the GitHub Release.</li>
+        <li>The tag triggers the <code>release</code> workflow, which builds the three OS binaries
+          and attaches them to the release.</li>
+      </ol>
 
       <div class="pager">
         <a href="./advanced-stats.html"><span class="pager__dir">← Previous</span>Advanced stats</a>

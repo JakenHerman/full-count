@@ -70,23 +70,20 @@ Requires Rust **1.75+** (see `rust-version` in `Cargo.toml`).
 
 ### Changelog
 
-Version history and notable changes: [`CHANGELOG.md`](CHANGELOG.md).
+Version history and notable changes: [`CHANGELOG.md`](CHANGELOG.md) — generated automatically by [`release-plz`](https://release-plz.ieni.dev/) from [Conventional Commit](https://www.conventionalcommits.org/) messages. Do not hand-edit.
 
 ### Cutting a release (maintainers)
 
-1. Update `CHANGELOG.md`: move items from **Unreleased** into a dated section, set the version and compare links at the bottom.
-2. Set `version` in `Cargo.toml` to match the release (for example `0.2.0`).
-3. Commit, then tag and push:
+Releases are automated. Your only jobs are (a) writing good commit messages and (b) clicking **Merge** on a PR.
 
-   ```bash
-   git tag -a v0.2.0 -m "v0.2.0"
-   git push
-   git push --tags
-   ```
+1. Land commits on `master` with Conventional Commit subjects — `feat:` for new behavior, `fix:` for bug fixes, `feat!:` (or a `BREAKING CHANGE:` footer) for breaking changes, `docs:` / `chore:` / `refactor:` for things that should not ship a release.
+2. The [**release-plz**](.github/workflows/release-plz.yml) workflow opens (or updates) a `chore: release` pull request that bumps `Cargo.toml`, refreshes `Cargo.lock`, and appends a new entry to `CHANGELOG.md`.
+3. Review and merge the Release PR. `release-plz` then pushes the `vX.Y.Z` tag and creates a GitHub Release whose body comes from the new `CHANGELOG.md` entry.
+4. The tag push triggers the [**release**](.github/workflows/release.yml) workflow, which builds Linux, Windows, and macOS artifacts and attaches them to the release.
 
-4. The [**Release**](.github/workflows/release.yml) workflow builds Linux, Windows, and macOS artifacts and attaches them to a **[GitHub Release](https://github.com/jakenherman/full-count/releases)** for that tag. Edit the release notes if you want more detail than the auto-generated summary.
+One-time setup: create a fine-grained GitHub PAT (or GitHub App token) with `contents: write` and `pull-requests: write` on this repo and save it as the `RELEASE_PLZ_TOKEN` repository secret. The default `GITHUB_TOKEN` can't trigger downstream workflows, which is why `release.yml` would otherwise not fire when the Release PR is merged.
 
-Optional later steps: publish to [crates.io](https://crates.io/) with `cargo publish` so users can run `cargo install full-count` (after claiming the crate name and adding any metadata crates.io requires).
+Optional later steps: publish to [crates.io](https://crates.io/) with `cargo publish` (or flip `publish = false` in `release-plz.toml`) so users can run `cargo install full-count`.
 
 ## Usage
 

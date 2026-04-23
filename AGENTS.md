@@ -81,7 +81,7 @@ changes, update *at minimum* the pages on the right.
 | HTML scorecard export in `src/export.rs` / `templates/scorecard.html` | `docs/guide/saves.html` (HTML scorecard export) |
 | `advanced-stats` feature or any stat it unlocks (`Cargo.toml`) | `docs/guide/advanced-stats.html`, landing-page copy |
 | New module, renamed file, changed build/test commands | `docs/guide/development.html` (Module layout, Building, Running tests) |
-| **Any user-visible change whatsoever** | **Add a bullet to `<h3>Unreleased</h3>` in `docs/guide/development.html#changelog` in the same PR. See [§6 Changelog protocol](#6-changelog-protocol-mandatory).** |
+| **Any user-visible change whatsoever** | **Write a [Conventional Commit](https://www.conventionalcommits.org/) subject (`feat:`, `fix:`, `feat!:`, …). See [§6 Changelog & release protocol](#6-changelog--release-protocol-mandatory).** |
 
 When you add or rename a guide page, also update:
 
@@ -105,62 +105,99 @@ When you add or rename a guide page, also update:
 - `.nojekyll` lives at `docs/.nojekyll` — do not delete it, or underscored
   paths may stop working on GitHub Pages.
 
-## 6. Changelog protocol (mandatory)
+## 6. Changelog & release protocol (mandatory)
 
-Every change that affects user-visible behavior must add a bullet to the
-changelog **in the same commit / PR** as the code change. This is not
-optional, and it is not a follow-up task.
+`CHANGELOG.md` and version bumps are **fully automated** by
+[`release-plz`](https://release-plz.ieni.dev/) (see `release-plz.toml` and
+`.github/workflows/release-plz.yml`). Agents do not hand-edit any of:
 
-**Where.** The changelog lives under the `<h3>Unreleased</h3>` heading in
-[`docs/guide/development.html#changelog`](./docs/guide/development.html#changelog).
-There is no `CHANGELOG.md` — the site is the single source of truth. Do not
-create a root-level `CHANGELOG.md`; the build assumes it doesn't exist.
+- `CHANGELOG.md`
+- `version` in `Cargo.toml`
+- `Cargo.lock` version rows
+- The changelog section of `docs/guide/development.html`
 
-**How.** Add a new `<li>` inside the `<ul>` that follows the `<h3>Unreleased</h3>`
-heading. One short sentence, past tense, plain prose.
+Those files are regenerated from commit messages when release-plz opens its
+`chore: release` PR. Touching them in a feature PR will cause merge conflicts
+against the Release PR — don't.
 
-```html
-<h3>Unreleased</h3>
-<ul>
-  <li>Added <code>B</code> as a balk reason in the manual runner-advance flow.</li>
-  <!-- existing bullets… -->
-</ul>
-```
+### The one rule: use Conventional Commits
 
-If there is no Unreleased section (e.g. right after a release was cut), create
-a fresh one above the most recent version heading:
+Every commit that lands on `master` (either directly or via squash-merge,
+whichever the PR uses) **must** use a
+[Conventional Commit](https://www.conventionalcommits.org/) subject. This is
+how release-plz knows a release is needed and what kind of version bump to
+cut.
 
-```html
-<h3>Unreleased</h3>
-<ul>
-  <li>Your bullet here.</li>
-</ul>
+| Subject prefix | Meaning | Triggers a release? | Bump |
+|----------------|---------|---------------------|------|
+| `feat: …` | New user-visible feature or behavior | Yes | MINOR (e.g. 0.1.0 → 0.2.0) |
+| `fix: …` | Bug fix | Yes | PATCH (e.g. 0.2.0 → 0.2.1) |
+| `feat!: …` or any `BREAKING CHANGE:` footer | Breaking user-visible change | Yes | MINOR while pre-1.0, MAJOR after |
+| `docs: …` | Docs site or comments only | No | — |
+| `chore: …`, `refactor: …`, `test: …`, `ci: …`, `style: …` | Internal, no user impact | No | — |
+| `perf: …` | Performance improvement users would notice | Yes | PATCH |
 
-<h3>0.1.0</h3>
-<!-- existing release notes… -->
-```
+Scopes are optional but encouraged for clarity:
+`feat(scoring): add balk reason to runner advance`.
 
-**Release cadence.** When a release ships, rename `Unreleased` to the new
-version number (e.g. `<h3>0.2.0</h3>`), bump `version` in `Cargo.toml` to
-match, and leave a new empty `Unreleased` section in place for the next
-change.
+Examples that are good:
 
-**What counts as user-visible.** Keybindings, CLI flags, prompts, save file
-fields, directory paths, sanitization rules, HTML scorecard output, error
-messages, default values, new stats, new features — all require a bullet.
-Pure internal refactors with zero observable change do not. **When in doubt,
-add the bullet.** A PR that changes behavior without touching the Unreleased
-list is incomplete.
+- `feat(scoring): add B as a balk reason in manual runner advance`
+- `fix(persist): sanitize colons in save filenames on Windows`
+- `feat!(saves): add pitch_id field to save schema`
+- `docs(scoring): document balk reason`
+- `chore: bump ratatui to 0.30`
+
+### What agents must do
+
+1. **Pick the right prefix.** If the change is user-visible, it must be
+   `feat`, `fix`, `feat!`, or `perf` — never `chore` or `refactor`. When in
+   doubt, prefer `feat` or `fix` over `chore`; a missing bullet is worse than
+   an extra one.
+2. **Write the subject like a changelog entry.** It will appear verbatim in
+   `CHANGELOG.md`. One line, imperative mood, no trailing period, no ticket
+   IDs unless they add real context.
+3. **Still update `docs/` in the same PR** for any user-visible change (see
+   §4). The commit-message bullet is the changelog; the docs site is the
+   reference manual. They are separate obligations.
+4. **Do not touch `CHANGELOG.md`, `release-plz.toml`, or the version in
+   `Cargo.toml`** except in a deliberate repo-maintenance PR.
+
+### What counts as user-visible
+
+Keybindings, CLI flags, prompts, save file fields, directory paths,
+sanitization rules, HTML scorecard output, error messages, default values,
+new stats, new features — all require `feat`/`fix`/`feat!`. Pure internal
+refactors with zero observable change get `refactor` or `chore`. **When in
+doubt, use `feat` or `fix`.**
+
+### How releases actually ship
+
+This is informational — agents don't run any of these steps themselves.
+
+1. Conventional commits land on `master`.
+2. The `release-plz` workflow opens (or updates) a `chore: release` PR that
+   bumps `Cargo.toml`, refreshes `Cargo.lock`, and appends an entry to
+   `CHANGELOG.md`.
+3. A maintainer reviews and merges the Release PR.
+4. `release-plz` pushes the `vX.Y.Z` tag and creates the GitHub Release.
+5. The tag push triggers `release.yml`, which builds Linux / macOS / Windows
+   binaries and attaches them to the release.
 
 ## 7. Commit & PR hygiene
 
-- Conventional-ish commit subjects are fine (`scoring: add balk reason to
-  runner advance`). They are not enforced.
+- **Commit subjects must be [Conventional Commits](https://www.conventionalcommits.org/).**
+  See §6 for the allowed prefixes and what each one does to the version. The
+  subject is the changelog entry — write it as if a user will read it,
+  because they will.
 - A good PR description mentions both the code change and the docs change.
   If an AI assistant opens a PR that touches user-facing behavior without a
   matching `docs/` diff, that PR should be treated as incomplete.
 - Run `cargo fmt` and `cargo clippy --all-features -- -D warnings` locally
   before pushing to avoid CI round-trips.
+- Do not bump `version` in `Cargo.toml`, touch `Cargo.lock`'s version rows,
+  or edit `CHANGELOG.md` as part of a feature PR — `release-plz` owns those
+  files (§6).
 
 ## 8. Useful shell snippets
 

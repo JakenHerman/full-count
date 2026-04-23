@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Development · full-count docs</title>
+  <meta name="description" content="Building, testing, and contributing to full-count." />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../"><span class="brand__dot">⚾</span> full-count <span class="brand__tag">docs</span></a>
+      <nav class="nav">
+        <a href="./" class="active">Docs</a>
+        <a href="./getting-started.html">Get started</a>
+        <a href="./scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs">
+    <aside class="sidebar" aria-label="Docs navigation">
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Introduction</p>
+        <ul>
+          <li><a href="./">Overview</a></li>
+          <li><a href="./why.html">Why full-count?</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Getting started</p>
+        <ul><li><a href="./getting-started.html">Install &amp; first game</a></li></ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Scoring</p>
+        <ul>
+          <li><a href="./scoring.html">Scoring reference</a></li>
+          <li><a href="./replay.html">Replay mode</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Files &amp; features</p>
+        <ul>
+          <li><a href="./saves.html">Saves &amp; exports</a></li>
+          <li><a href="./advanced-stats.html">Advanced stats</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Contributing</p>
+        <ul><li><a href="./development.html" class="active">Development</a></li></ul>
+      </div>
+    </aside>
+
+    <article class="content">
+      <p class="breadcrumbs"><a href="../">full-count</a> / <a href="./">Docs</a> / Development</p>
+      <h1>Development</h1>
+
+      <p>
+        full-count is a small Rust application — a handful of modules, one binary, no workspace
+        members. If you're comfortable with <code>cargo</code> you already know how to build it.
+      </p>
+
+      <h2>Building</h2>
+<pre><span class="n">cargo</span> build                               <span class="c"># debug</span>
+<span class="n">cargo</span> build --release                     <span class="c"># optimized</span>
+<span class="n">cargo</span> build --release --features advanced-stats</pre>
+
+      <h2>Running tests</h2>
+<pre><span class="n">cargo</span> test                                <span class="c"># standard suite</span>
+<span class="n">cargo</span> test --features advanced-stats      <span class="c"># feature-gated paths too</span></pre>
+      <p>
+        CI (GitHub Actions) runs both test lines on every push and pull request, plus
+        <code>cargo fmt --check</code> and <code>cargo clippy -- -D warnings</code>.
+      </p>
+
+      <h2>Lint &amp; format</h2>
+<pre><span class="n">cargo</span> fmt                                 <span class="c"># apply rustfmt</span>
+<span class="n">cargo</span> clippy -- -D warnings              <span class="c"># treat warnings as errors</span>
+<span class="n">cargo</span> clippy --features advanced-stats -- -D warnings</pre>
+
+      <h2>Module layout</h2>
+      <table>
+        <thead><tr><th>File</th><th>Responsibility</th></tr></thead>
+        <tbody>
+          <tr><td><code>src/main.rs</code></td><td>Entry point, CLI parsing, terminal setup, event loop.</td></tr>
+          <tr><td><code>src/app.rs</code></td><td>Top-level <code>App</code> state: screens, input modes, setup data, undo stack.</td></tr>
+          <tr><td><code>src/game.rs</code></td><td>The <code>GameState</code> domain model: innings, runners, stats, substitutions, and the rules.</td></tr>
+          <tr><td><code>src/input.rs</code></td><td>Per-screen key handlers; the state machine that turns keystrokes into <code>app</code>/<code>game</code> mutations.</td></tr>
+          <tr><td><code>src/ui.rs</code></td><td>ratatui rendering for every screen.</td></tr>
+          <tr><td><code>src/persist.rs</code></td><td>JSON save/load and the <code>~/.full-count/saves/</code> directory logic.</td></tr>
+          <tr><td><code>src/export.rs</code></td><td>Askama-driven HTML scorecard export.</td></tr>
+          <tr><td><code>templates/scorecard.html</code></td><td>The Askama template used by <code>export.rs</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Contributing</h2>
+      <ul>
+        <li>Keep changes small and test-covered; the project favors a growing test suite over speculative abstractions.</li>
+        <li>Every user-facing change needs a matching docs update — see <a href="#docs-rules">Keeping the docs in sync</a>.</li>
+        <li>Clippy must be clean (<code>-D warnings</code>). Formatting is enforced via <code>cargo fmt --check</code>.</li>
+        <li>Prefer adding a unit test under <code>#[cfg(test)]</code> in the same module over building a separate integration file, unless the test genuinely spans modules.</li>
+      </ul>
+
+      <h2 id="docs-rules">Keeping the docs in sync</h2>
+      <p>
+        Docs are first-class. When you change the user-facing behavior of the app, the documentation
+        site in <code>docs/</code> has to move with it. The rules:
+      </p>
+
+      <ul>
+        <li>New keybinding? Update <a href="./scoring.html">Scoring reference</a>, the landing-page keygrid in <code>docs/index.html</code>, and the setup/gameplay sections of <a href="./getting-started.html">Getting started</a> if relevant.</li>
+        <li>New CLI flag? Update <a href="./getting-started.html">Getting started</a> and <a href="./saves.html">Saves &amp; exports</a>.</li>
+        <li>New save-file field, directory, or sanitization rule? Update <a href="./saves.html">Saves &amp; exports</a>.</li>
+        <li>New <code>advanced-stats</code> metric? Update <a href="./advanced-stats.html">Advanced stats</a>.</li>
+        <li>New replay behavior? Update <a href="./replay.html">Replay mode</a>.</li>
+        <li>Any user-facing change worth noting? Add an entry to the <a href="#changelog">Changelog</a> below.</li>
+      </ul>
+
+      <p>
+        Automation backing these rules lives in <code>AGENTS.md</code> and
+        <code>.github/copilot-instructions.md</code> so every AI-assisted change is nudged into
+        updating the site. Please keep those files honest.
+      </p>
+
+      <h2 id="changelog">Changelog</h2>
+
+      <h3>Unreleased</h3>
+      <ul>
+        <li>Static documentation site under <code>docs/</code>, deployed to GitHub Pages.</li>
+        <li>Landing page, multi-section guide, and contributor docs.</li>
+        <li><code>AGENTS.md</code> and Copilot instructions enforcing docs-with-code updates.</li>
+      </ul>
+
+      <h3>0.1.0</h3>
+      <ul>
+        <li>Initial release.</li>
+        <li>Pitch-by-pitch scoring, live line score, batter &amp; pitcher lines.</li>
+        <li>Save / load with full replay snapshots, up to 100 levels of undo.</li>
+        <li>Paper-style HTML scorecard export.</li>
+        <li>Opt-in <code>advanced-stats</code> feature with season AVG, 2B/3B/HR, SB/CS, LOB, WP, BF.</li>
+      </ul>
+
+      <div class="pager">
+        <a href="./advanced-stats.html"><span class="pager__dir">← Previous</span>Advanced stats</a>
+        <a class="pager__next" href="./"><span class="pager__dir">Back to →</span>Overview</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div><a href="../">Home</a> · <a href="https://github.com/jakenherman/full-count">GitHub</a></div>
+    </div>
+  </footer>
+</body>
+</html>

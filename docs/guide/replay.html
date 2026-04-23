@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Replay mode · full-count docs</title>
+  <meta name="description" content="Step through any saved full-count game pitch-by-pitch in read-only replay mode." />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../"><span class="brand__dot">⚾</span> full-count <span class="brand__tag">docs</span></a>
+      <nav class="nav">
+        <a href="./" class="active">Docs</a>
+        <a href="./getting-started.html">Get started</a>
+        <a href="./scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs">
+    <aside class="sidebar" aria-label="Docs navigation">
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Introduction</p>
+        <ul>
+          <li><a href="./">Overview</a></li>
+          <li><a href="./why.html">Why full-count?</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Getting started</p>
+        <ul><li><a href="./getting-started.html">Install &amp; first game</a></li></ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Scoring</p>
+        <ul>
+          <li><a href="./scoring.html">Scoring reference</a></li>
+          <li><a href="./replay.html" class="active">Replay mode</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Files &amp; features</p>
+        <ul>
+          <li><a href="./saves.html">Saves &amp; exports</a></li>
+          <li><a href="./advanced-stats.html">Advanced stats</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Contributing</p>
+        <ul><li><a href="./development.html">Development</a></li></ul>
+      </div>
+    </aside>
+
+    <article class="content">
+      <p class="breadcrumbs"><a href="../">full-count</a> / <a href="./">Docs</a> / Replay mode</p>
+      <h1>Replay mode</h1>
+
+      <p>
+        Replay mode is a read-only walk through a saved game, one state at a time. It uses the
+        same scoring UI you already know — scoreboard, batter line, pitcher line, play log — but
+        the state advances or rewinds in discrete snapshots rather than by typing scoring keys.
+      </p>
+
+      <h2>How snapshots work</h2>
+      <p>
+        Whenever you perform a scoring action — a pitch, a hit, a substitution, a runner advance —
+        full-count saves a snapshot of the entire game state. The same snapshots that power
+        <a href="./scoring.html#undo">undo</a> are serialized to disk when you save the game, so
+        every save file carries the pitch-by-pitch history with it.
+      </p>
+
+      <div class="callout callout--note">
+        <span class="callout__mark">Note</span>
+        <div>
+          <p>
+            Older save files written before replay existed may not contain snapshot data. If you
+            try to replay one, full-count prints
+            <code>no replay data in '&lt;file&gt;'. Re-save during scoring to capture it.</code>
+            Re-save the game once and every subsequent load will have snapshots.
+          </p>
+        </div>
+      </div>
+
+      <h2>Entering replay mode</h2>
+
+      <p>Two ways:</p>
+
+      <ol>
+        <li>
+          <strong>From the load menu.</strong> On the title screen, select <em>Load game</em>.
+          Highlight a save file, then press <kbd>R</kbd> (instead of <kbd>Enter</kbd>) to open it
+          in replay mode.
+        </li>
+        <li>
+          <strong>From the command line.</strong>
+<pre><span class="n">full-count</span> --load cubs-vs-sox --replay</pre>
+          <p>Requires <code>--load</code>; the <code>--replay</code> flag only makes sense
+          paired with a file.</p>
+        </li>
+      </ol>
+
+      <h2>Navigation</h2>
+
+      <div class="keygrid">
+        <div class="keygrid__item"><kbd>→</kbd> or <kbd>L</kbd> Step forward one event</div>
+        <div class="keygrid__item"><kbd>←</kbd> or <kbd>H</kbd> Step back one event</div>
+        <div class="keygrid__item"><kbd>g</kbd> Jump to the first snapshot</div>
+        <div class="keygrid__item"><kbd>G</kbd> Jump to the final snapshot</div>
+        <div class="keygrid__item"><kbd>Esc</kbd> Exit back to the title screen</div>
+      </div>
+
+      <p>
+        The scoreboard, bases, counts, and stat lines reflect the state at whichever snapshot you're
+        currently viewing. There's no editing — if you want to branch a game from an earlier state,
+        switch to scoring mode and use <a href="./scoring.html#undo">undo</a> instead.
+      </p>
+
+      <h2>What replay is useful for</h2>
+      <ul>
+        <li>Walking a friend through the game you saw.</li>
+        <li>Confirming you scored something correctly — a wild 6-4-3 or a disputed RBI.</li>
+        <li>Showing how a rally happened, pitch by pitch.</li>
+        <li>Debugging your own scoring habits against a real box score.</li>
+      </ul>
+
+      <div class="pager">
+        <a href="./scoring.html"><span class="pager__dir">← Previous</span>Scoring reference</a>
+        <a class="pager__next" href="./saves.html"><span class="pager__dir">Next →</span>Saves &amp; exports</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div><a href="../">Home</a> · <a href="https://github.com/jakenherman/full-count">GitHub</a></div>
+    </div>
+  </footer>
+</body>
+</html>

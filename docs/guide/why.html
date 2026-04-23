@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Why full-count? · full-count docs</title>
+  <meta name="description" content="The motivation behind a keyboard-first TUI for scoring baseball in real time." />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../"><span class="brand__dot">⚾</span> full-count <span class="brand__tag">docs</span></a>
+      <nav class="nav">
+        <a href="./" class="active">Docs</a>
+        <a href="./getting-started.html">Get started</a>
+        <a href="./scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs">
+    <aside class="sidebar" aria-label="Docs navigation">
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Introduction</p>
+        <ul>
+          <li><a href="./">Overview</a></li>
+          <li><a href="./why.html" class="active">Why full-count?</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Getting started</p>
+        <ul><li><a href="./getting-started.html">Install &amp; first game</a></li></ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Scoring</p>
+        <ul>
+          <li><a href="./scoring.html">Scoring reference</a></li>
+          <li><a href="./replay.html">Replay mode</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Files &amp; features</p>
+        <ul>
+          <li><a href="./saves.html">Saves &amp; exports</a></li>
+          <li><a href="./advanced-stats.html">Advanced stats</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Contributing</p>
+        <ul><li><a href="./development.html">Development</a></li></ul>
+      </div>
+    </aside>
+
+    <article class="content">
+      <p class="breadcrumbs"><a href="../">full-count</a> / <a href="./">Docs</a> / Why full-count?</p>
+      <h1>Why full-count?</h1>
+
+      <p>
+        Baseball is a slow game with a lot of tiny events. Six fouls over nine pitches, a stolen base
+        on a full count, a weird 4-6-3 that was almost a 4-3 — the ordinary scorecard apps built for
+        phones can't keep up, and the big-league trackers are overkill for the bleachers or the
+        couch. full-count aims straight at the middle: serious scorekeeping, zero ceremony.
+      </p>
+
+      <h2>A TUI, not a GUI</h2>
+      <p>
+        Scoring a game is a keyboard activity the way chess is a keyboard activity. Your hands settle
+        into a rhythm and every keystroke carries a <em>meaning</em>: <code>B</code> for ball,
+        <code>F</code> for foul, <code>1</code> for a single.
+      </p>
+      <p>
+        A terminal UI is the honest medium for that. No mouse hunting, no gesture lag, no layout
+        shifts when a modal pops up. Just characters in, characters out, at 60 Hz, on every
+        machine from a Raspberry Pi to a laptop. If you already live in a terminal, full-count
+        feels like home.
+      </p>
+
+      <h2>Keyboard-first, every single action</h2>
+      <p>
+        There is no feature in full-count that requires more than a handful of keystrokes.
+        Pitches are one letter. Hits are one digit. Fielder's notation is typed the way it's
+        spoken — <code>6-4-3</code> is literally three keys, a hyphen, three keys, enter. The
+        RBI prompt is a single digit. Even substitutions and wild pitches fit in seconds.
+      </p>
+      <p>
+        You can run the entire application without ever moving from the home row.
+      </p>
+
+      <h2>Real scorekeeping, not a box score</h2>
+      <p>
+        full-count doesn't just remember the <em>result</em> of an at-bat — it remembers the
+        <em>sequence</em>: every ball, strike, foul, and base advancement, in order, with
+        enough fidelity to reconstruct the game pitch-by-pitch. That enables three things
+        nobody else gives you for free:
+      </p>
+      <ul>
+        <li>A real <a href="./replay.html">replay mode</a> that walks through the game as it happened.</li>
+        <li>A paper-style HTML <a href="./saves.html#export">scorecard export</a> that a human can actually read.</li>
+        <li>A 100-level <a href="./scoring.html#undo">undo stack</a> for when the batter just fouled off a strike you already recorded as a ball.</li>
+      </ul>
+
+      <h2>No servers, no telemetry, no accounts</h2>
+      <p>
+        The app runs entirely on your machine. Saves are plain JSON under
+        <code>~/.full-count/saves/</code>. Exports are plain HTML under
+        <code>~/.full-count/exports/</code>. Nothing phones home. Nothing asks you to sign in.
+        You own your games.
+      </p>
+
+      <h2>Rust, because the game runs forever</h2>
+      <p>
+        A scorekeeper app that crashes in the seventh inning is worse than useless. Rust gives us
+        a binary that starts instantly, holds up under long-running sessions, and fails loudly
+        instead of silently. The panic hook restores your terminal so you never end a game
+        staring at a busted prompt. 137 tests (and counting) keep the edge cases honest.
+      </p>
+
+      <div class="callout callout--note">
+        <span class="callout__mark">FYI</span>
+        <div>
+          <p>
+            full-count is deliberately <em>not</em> a streaming/broadcast tool. It's a
+            scorekeeper's notebook. If you need play-by-play graphics or a public API, you want
+            a different project. If you want to keep score the way your grandfather did —
+            but faster, with undo — you're in the right place.
+          </p>
+        </div>
+      </div>
+
+      <div class="pager">
+        <a href="./"><span class="pager__dir">← Previous</span>Overview</a>
+        <a class="pager__next" href="./getting-started.html"><span class="pager__dir">Next →</span>Install &amp; first game</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div><a href="../">Home</a> · <a href="https://github.com/jakenherman/full-count">GitHub</a></div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Advanced stats · full-count docs</title>
+  <meta name="description" content="The opt-in advanced-stats Cargo feature: season AVG, hit breakdowns, SB/CS, LOB, WP, BF, and more." />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>⚾</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../"><span class="brand__dot">⚾</span> full-count <span class="brand__tag">docs</span></a>
+      <nav class="nav">
+        <a href="./" class="active">Docs</a>
+        <a href="./getting-started.html">Get started</a>
+        <a href="./scoring.html">Scoring keys</a>
+        <a class="nav__gh" href="https://github.com/jakenherman/full-count" aria-label="GitHub repository">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs">
+    <aside class="sidebar" aria-label="Docs navigation">
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Introduction</p>
+        <ul>
+          <li><a href="./">Overview</a></li>
+          <li><a href="./why.html">Why full-count?</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Getting started</p>
+        <ul><li><a href="./getting-started.html">Install &amp; first game</a></li></ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Scoring</p>
+        <ul>
+          <li><a href="./scoring.html">Scoring reference</a></li>
+          <li><a href="./replay.html">Replay mode</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Files &amp; features</p>
+        <ul>
+          <li><a href="./saves.html">Saves &amp; exports</a></li>
+          <li><a href="./advanced-stats.html" class="active">Advanced stats</a></li>
+        </ul>
+      </div>
+      <div class="sidebar__group">
+        <p class="sidebar__heading">Contributing</p>
+        <ul><li><a href="./development.html">Development</a></li></ul>
+      </div>
+    </aside>
+
+    <article class="content">
+      <p class="breadcrumbs"><a href="../">full-count</a> / <a href="./">Docs</a> / Advanced stats</p>
+      <h1>Advanced stats</h1>
+
+      <p>
+        By default, full-count tracks the essentials: AB, R, H, RBI, BB, K for batters; IP, H, R, ER,
+        BB, K for pitchers. That's what most scorekeepers need, and it keeps the UI dense but readable.
+      </p>
+
+      <p>
+        For the stat nerds, there's an opt-in Cargo feature — <code>advanced-stats</code> — that
+        unlocks a second, richer layer of tracking. Build it in once and every game from then on
+        carries the extra detail.
+      </p>
+
+      <h2>Enabling the feature</h2>
+
+<pre><span class="n">cargo</span> build --release --features advanced-stats
+<span class="c"># for tests:</span>
+<span class="n">cargo</span> test --features advanced-stats</pre>
+
+      <p>
+        Save files written by an <code>advanced-stats</code> build remain readable by a standard
+        build, and vice versa — the extra fields are optional in the JSON schema.
+      </p>
+
+      <h2>What it unlocks</h2>
+
+      <h3>On the setup screen</h3>
+      <ul>
+        <li>An extra field per lineup slot for the hitter's <strong>season batting average</strong>. Type <code>.275</code> or <code>275</code> — both work.</li>
+      </ul>
+
+      <h3>Batter stat lines</h3>
+      <ul>
+        <li><strong>Hit breakdowns</strong> — 2B, 3B, HR counted separately in addition to total hits.</li>
+        <li><strong>SB / CS</strong> — stolen bases and caught stealing, credited from manual runner advancement.</li>
+        <li><strong>LOB</strong> — left on base, tallied when the inning ends.</li>
+        <li><strong>Season AVG</strong> — carried in from setup and displayed alongside the game line.</li>
+      </ul>
+
+      <h3>Pitcher stat lines</h3>
+      <ul>
+        <li><strong>BF</strong> — batters faced.</li>
+        <li><strong>WP</strong> — wild pitches (from runner-advance reason <kbd>W</kbd>).</li>
+      </ul>
+
+      <div class="callout callout--note">
+        <span class="callout__mark">Note</span>
+        <div>
+          <p>
+            The advanced stats are cosmetic upgrades to the existing screens — no new keystrokes are
+            introduced. Every scoring key works the same way whether you built with the feature or not.
+          </p>
+        </div>
+      </div>
+
+      <h2>Checking what's enabled</h2>
+      <p>
+        On the scoring screen, look for the extra columns in the batter/pitcher tables (e.g.
+        <code>2B 3B HR</code> or <code>BF WP</code>). If you only see the standard columns, the
+        binary was built without the feature — rebuild with <code>--features advanced-stats</code>.
+      </p>
+
+      <div class="pager">
+        <a href="./saves.html"><span class="pager__dir">← Previous</span>Saves &amp; exports</a>
+        <a class="pager__next" href="./development.html"><span class="pager__dir">Next →</span>Development</a>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div>full-count · MIT · Built with Rust &amp; <a href="https://github.com/ratatui-org/ratatui">ratatui</a></div>
+      <div><a href="../">Home</a> · <a href="https://github.com/jakenherman/full-count">GitHub</a></div>
+    </div>
+  </footer>
+</body>
+</html>

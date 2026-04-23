@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          strip target/release/full-count
+          mkdir pack
+          cp target/release/full-count pack/full-count
+          mkdir dist
+          tar czvf "dist/full-count-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" -C pack full-count
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-tarball
+          path: dist/*.tar.gz
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path target/release/full-count.exe -DestinationPath "dist/full-count-${version}-x86_64-pc-windows-msvc.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: dist/*.zip
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked --target aarch64-apple-darwin
+      - run: cargo build --release --locked --target x86_64-apple-darwin
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist pack-aarch64 pack-x86_64
+          cp target/aarch64-apple-darwin/release/full-count pack-aarch64/full-count
+          cp target/x86_64-apple-darwin/release/full-count pack-x86_64/full-count
+          chmod +x pack-aarch64/full-count pack-x86_64/full-count
+          tar czvf "dist/full-count-${VERSION}-aarch64-apple-darwin.tar.gz" -C pack-aarch64 full-count
+          tar czvf "dist/full-count-${VERSION}-x86_64-apple-darwin.tar.gz" -C pack-x86_64 full-count
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-tarballs
+          path: dist/*.tar.gz
+
+  release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            assets/**/*.tar.gz
+            assets/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
